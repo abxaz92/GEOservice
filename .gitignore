@@ -24,9 +24,3 @@ local.properties
 # Locally stored "Eclipse launch configurations"
 *.launch
 /taxi.iml
-.gitignore
-.idea/
-geoservice.iml
-pom.xml
-src/
-target/
