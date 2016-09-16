@@ -46,11 +46,15 @@ public class RoutingService {
 
     @PostConstruct
     public void init() {
-        hopper = new GraphHopper().forServer();
-        hopper.setOSMFile("/home/david/north-caucasus-fed-district-latest.osm");
-        hopper.setGraphHopperLocation("/home/david/graph/");
-        hopper.setEncodingManager(new EncodingManager("car"));
-        hopper.importOrLoad();
+        try {
+            hopper = new GraphHopper().forServer();
+            hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
+            hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
+            hopper.setEncodingManager(new EncodingManager("car"));
+            hopper.importOrLoad();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
