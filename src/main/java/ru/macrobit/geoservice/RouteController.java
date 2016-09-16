@@ -1,5 +1,7 @@
 package ru.macrobit.geoservice;
 
+import ru.macrobit.geoservice.pojo.BatchRequest;
+
 import javax.ejb.EJB;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -27,6 +29,13 @@ public class RouteController {
         double[] fromLocs = parseLocations(from);
         double[] toLocs = parseLocations(to);
         return routingService.getDistance(fromLocs[0], fromLocs[1], toLocs[0], toLocs[1]);
+    }
+
+    @POST
+    @Path("/batch")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Object postBatchDistanceRequest(BatchRequest batchRequest) {
+        return routingService.calcDistances(batchRequest);
     }
 
     private double[] parseLocations(String loc) {
