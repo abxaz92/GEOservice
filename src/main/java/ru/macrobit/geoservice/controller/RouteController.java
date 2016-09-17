@@ -1,5 +1,6 @@
-package ru.macrobit.geoservice;
+package ru.macrobit.geoservice.controller;
 
+import ru.macrobit.geoservice.RoutingService;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
 import javax.ejb.EJB;
