@@ -40,7 +40,10 @@ public class RouteController {
     @Path("/batch")
     @Consumes(MediaType.APPLICATION_JSON)
     public Object postBatchDistanceRequest(BatchRequest batchRequest) {
-        return routingService.calcDistances(batchRequest);
+        long a = System.currentTimeMillis();
+        Object res = routingService.calcDistances(batchRequest);
+        logger.info("{}", System.currentTimeMillis() - a);
+        return res;
     }
 
     private double[] parseLocations(String loc) {

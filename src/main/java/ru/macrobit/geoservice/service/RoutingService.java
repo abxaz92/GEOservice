@@ -71,6 +71,7 @@ public class RoutingService {
     }
 
     public Object calcDistances(BatchRequest batchRequest) {
+        long a = System.currentTimeMillis();
         int batchSize = batchRequest.getDests().values().size();
         if (batchSize == 0) {
             return null;
@@ -81,6 +82,7 @@ public class RoutingService {
             resMap.put(entry.getKey(), getDistance(batchRequest.getSrc(), entry.getValue()));
             return resMap;
         }
+
         Map<String, Future<Double>> futureMap = new HashMap<>();
 /*        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> {
             Thread.sleep(10);
@@ -90,9 +92,9 @@ public class RoutingService {
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {
             try {
-                response.put(key, val.get(15, TimeUnit.MILLISECONDS));
+                response.put(key, val.get(5, TimeUnit.MILLISECONDS));
             } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                response.put(key, null);
+                response.put(key, -1d);
             }
         });
         return response;
