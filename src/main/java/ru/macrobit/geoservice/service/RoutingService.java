@@ -1,4 +1,4 @@
-package ru.macrobit.geoservice;
+package ru.macrobit.geoservice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphhopper.GHRequest;
@@ -9,6 +9,7 @@ import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.util.PointList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
 import javax.annotation.PostConstruct;
@@ -68,7 +69,6 @@ public class RoutingService {
         PointList pointList = path.getPoints();
         return pointList.toGeoJson();
     }
-
 
     public Object calcDistances(BatchRequest batchRequest) {
         int batchSize = batchRequest.getDests().values().size();

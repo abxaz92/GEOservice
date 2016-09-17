@@ -1,7 +1,9 @@
 package ru.macrobit.geoservice.controller;
 
-import ru.macrobit.geoservice.RoutingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.pojo.BatchRequest;
+import ru.macrobit.geoservice.service.RoutingService;
 
 import javax.ejb.EJB;
 import javax.ws.rs.*;
@@ -13,6 +15,8 @@ import javax.ws.rs.core.MediaType;
 @Path("/route")
 @Produces(MediaType.APPLICATION_JSON)
 public class RouteController {
+    private static final Logger logger = LoggerFactory.getLogger(RouteController.class);
+
     @EJB
     private RoutingService routingService;
 

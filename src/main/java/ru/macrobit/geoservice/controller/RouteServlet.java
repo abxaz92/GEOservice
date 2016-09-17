@@ -1,7 +1,8 @@
-package ru.macrobit.geoservice;
+package ru.macrobit.geoservice.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.macrobit.geoservice.service.RoutingService;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
 import javax.ejb.EJB;

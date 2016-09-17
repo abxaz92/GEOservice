@@ -1,4 +1,4 @@
-package ru.macrobit.geoservice;
+package ru.macrobit.geoservice.common;
 
 import java.io.InputStream;
 import java.util.Properties;
