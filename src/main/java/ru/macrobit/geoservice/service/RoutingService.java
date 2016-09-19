@@ -53,12 +53,12 @@ public class RoutingService {
 
     @PostConstruct
     public void init() {
-        hopper = new GraphHopper().forServer();
+        hopper = new CustomGraphHopper().forServer();
         hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
         hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
         hopper.setEncodingManager(new EncodingManager("car"));
         hopper.importOrLoad();
-        try {
+        /*try {
             Graph graph = hopper.getGraphHopperStorage();
             FlagEncoder carEncoder = hopper.getEncodingManager().getEncoder("car");
             LocationIndex locationIndex = hopper.getLocationIndex();
@@ -72,7 +72,7 @@ public class RoutingService {
             }
 
             int edgeId = qr.getClosestEdge().getEdge();
-
+            logger.warn("edgeId {}", edgeId);
             EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, Integer.MIN_VALUE);
             double value = 500;
             double oldSpeed = carEncoder.getSpeed(edge.getFlags());
@@ -83,7 +83,7 @@ public class RoutingService {
             }
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
@@ -116,7 +116,7 @@ public class RoutingService {
             Thread.sleep(10);
             return 0d;
         })));*/
-        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> getDistance(batchRequest.getSrc(), location))));
+        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> getDistance(location, batchRequest.getSrc()))));
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {
             try {
