@@ -33,7 +33,7 @@ public class RouteController {
     public Object getRouteDistance(@QueryParam("from") String from, @QueryParam("to") String to) {
         double[] fromLocs = parseLocations(from);
         double[] toLocs = parseLocations(to);
-        return routingService.getDistance(fromLocs[0], fromLocs[1], toLocs[0], toLocs[1]);
+        return routingService.getDistanceAndTime(fromLocs[0], fromLocs[1], toLocs[0], toLocs[1]);
     }
 
     @POST

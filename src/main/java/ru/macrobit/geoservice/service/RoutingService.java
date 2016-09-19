@@ -5,7 +5,13 @@ import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
+import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.FlagEncoder;
+import com.graphhopper.storage.Graph;
+import com.graphhopper.storage.index.LocationIndex;
+import com.graphhopper.storage.index.QueryResult;
+import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +53,34 @@ public class RoutingService {
 
     @PostConstruct
     public void init() {
+        hopper = new GraphHopper().forServer();
+        hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
+        hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
+        hopper.setEncodingManager(new EncodingManager("car"));
+        hopper.importOrLoad();
         try {
-            hopper = new GraphHopper().forServer();
-            hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
-            hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
-            hopper.setEncodingManager(new EncodingManager("car"));
-            hopper.importOrLoad();
+            Graph graph = hopper.getGraphHopperStorage();
+            FlagEncoder carEncoder = hopper.getEncodingManager().getEncoder("car");
+            LocationIndex locationIndex = hopper.getLocationIndex();
+
+            double lat = 43.045042;
+            double lon = 44.661595;
+            QueryResult qr = locationIndex.findClosest(lat, lon, EdgeFilter.ALL_EDGES);
+            if (!qr.isValid()) {
+                // logger.info("no matching road found for entry " + entry.getId() + " at " + point);
+                return;
+            }
+
+            int edgeId = qr.getClosestEdge().getEdge();
+
+            EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, Integer.MIN_VALUE);
+            double value = 500;
+            double oldSpeed = carEncoder.getSpeed(edge.getFlags());
+            if (oldSpeed != value) {
+                // TODO use different speed for the different directions (see e.g. Bike2WeightFlagEncoder)
+                logger.info("Speed change at " + edge.getName() + " (" + lat + " " + lon + "). Old: " + oldSpeed + ", new:" + value);
+                edge.setFlags(carEncoder.setSpeed(edge.getFlags(), value));
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -112,6 +140,20 @@ public class RoutingService {
         }
         PathWrapper path = rsp.getBest();
         return path.getDistance();
+    }
+
+    public Object getDistanceAndTime(double fromLat, double fromLon, double toLat, double toLon) {
+        GHResponse rsp = hopper.route(createRequest(fromLat, fromLon, toLat, toLon));
+        if (rsp.hasErrors()) {
+            logger.error("{}", rsp.getErrors());
+            return -1;
+        }
+        PathWrapper path = rsp.getBest();
+        Map<String, Object> res = new HashMap<>();
+        res.put("dist", path.getDistance());
+        res.put("time", path.getTime() / 1000);
+
+        return res;
     }
 
     public static GHRequest createRequest(double fromLat, double fromLon, double toLat, double toLon) {
