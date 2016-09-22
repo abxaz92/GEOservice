@@ -38,7 +38,8 @@ public class RoutingService {
     public static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
     private GraphHopper hopper;
-    private ExecutorService pool = Executors.newFixedThreadPool(100, new ThreadFactory() {
+    private static int POOL_SIZE = 100;
+    private ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
         private AtomicInteger counter = new AtomicInteger();
 
         @Override
@@ -58,7 +59,9 @@ public class RoutingService {
         hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
         hopper.setEncodingManager(new EncodingManager("car"));
         hopper.importOrLoad();
-
+        for (int i = 0; i < POOL_SIZE; i++) {
+            pool.submit(() -> null);
+        }
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
