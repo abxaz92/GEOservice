@@ -95,7 +95,7 @@ public class RoutingService {
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {
             try {
-                response.put(key, val.get(5, TimeUnit.MILLISECONDS));
+                response.put(key, val.get(7, TimeUnit.MILLISECONDS));
             } catch (TimeoutException | InterruptedException | ExecutionException e) {
                 response.put(key, -1d);
             }
