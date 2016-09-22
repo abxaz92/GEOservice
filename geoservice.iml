@@ -22,6 +22,10 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Maven: com.graphhopper:graphhopper:0.7.0" level="project" />
+    <orderEntry type="library" name="Maven: com.graphhopper:graphhopper-tools-lgpl:0.7.0" level="project" />
+    <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.21" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.xmlgraphics:xmlgraphics-commons:2.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: javax.enterprise:cdi-api:1.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: javax.el:el-api:2.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.jboss.spec.javax.interceptor:jboss-interceptors-api_1.1_spec:1.0.0.Beta1" level="project" />
