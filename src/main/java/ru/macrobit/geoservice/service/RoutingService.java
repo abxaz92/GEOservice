@@ -76,7 +76,7 @@ public class RoutingService {
             pool.submit(() -> null);
         }
         client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode");
+        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
         httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
         ResponseHandler<List<AvoidEdge>> responseHandler = response -> {
             int status = response.getStatusLine().getStatusCode();
