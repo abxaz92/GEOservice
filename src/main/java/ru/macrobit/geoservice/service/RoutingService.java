@@ -1,5 +1,6 @@
 package ru.macrobit.geoservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
@@ -12,10 +13,17 @@ import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.QueryResult;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
+import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
 import javax.annotation.PostConstruct;
@@ -24,6 +32,7 @@ import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,6 +59,9 @@ public class RoutingService {
             return thread;
         }
     });
+    private CloseableHttpClient client;
+    private TypeReference<List<AvoidEdge>> typeReference = new TypeReference<List<AvoidEdge>>() {
+    };
 
     @PostConstruct
     public void init() {
@@ -62,6 +74,25 @@ public class RoutingService {
         for (int i = 0; i < POOL_SIZE; i++) {
             pool.submit(() -> null);
         }
+        client = HttpClients.createMinimal();
+        HttpGet httpGet = new HttpGet("http://irtaxi.ru/taxi/rest/mapnode");
+        ResponseHandler<List<AvoidEdge>> responseHandler = response -> {
+            int status = response.getStatusLine().getStatusCode();
+            if (status >= 200 && status < 300) {
+                HttpEntity entity = response.getEntity();
+                return entity != null ? MAPPER.readValue(entity.getContent(), typeReference) : null;
+            } else {
+                throw new ClientProtocolException("Unexpected response status: " + status);
+            }
+        };
+        try {
+            List<AvoidEdge> avoidEdges = client.execute(httpGet, responseHandler);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
@@ -90,10 +121,6 @@ public class RoutingService {
         }
 
         Map<String, Future<Double>> futureMap = new HashMap<>();
-/*        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> {
-            Thread.sleep(10);
-            return 0d;
-        })));*/
         batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> getDistance(location, batchRequest.getSrc()))));
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {
@@ -134,22 +161,30 @@ public class RoutingService {
         return res;
     }
 
-    public void setEdgeSpeed(double lat, double lon, double speed) {
+    public void setEdgeSpeed(AvoidEdge avoidEdge) {
+        if (avoidEdge.getLoc() == null) {
+            throw new RuntimeException();
+        }
+        if (avoidEdge.getLoc().length != 2) {
+            throw new RuntimeException();
+        }
         Graph graph = hopper.getGraphHopperStorage();
         FlagEncoder carEncoder = hopper.getEncodingManager().getEncoder("car");
         LocationIndex locationIndex = hopper.getLocationIndex();
-        QueryResult qr = locationIndex.findClosest(lat, lon, EdgeFilter.ALL_EDGES);
+        QueryResult qr = locationIndex.findClosest(avoidEdge.getLoc()[0], avoidEdge.getLoc()[1], EdgeFilter.ALL_EDGES);
         if (!qr.isValid()) {
-            logger.warn("query not valid for : {}, {}", lat, lon);
+            logger.warn("query not valid for :{} {}, {}", avoidEdge.getId(), avoidEdge.getLoc()[0], avoidEdge.getLoc()[0]);
             return;
         }
 
         int edgeId = qr.getClosestEdge().getEdge();
         EdgeIteratorState edge = graph.getEdgeIteratorState(edgeId, Integer.MIN_VALUE);
         double oldSpeed = carEncoder.getSpeed(edge.getFlags());
-        if (oldSpeed != speed) {
-            logger.info("Speed change [{}] at ({}, {}). Old: {}, new: {}", edge.getName(), lat, lon, oldSpeed, speed);
-            edge.setFlags(carEncoder.setSpeed(edge.getFlags(), speed));
+        avoidEdge.setOldSpeed(oldSpeed);
+        avoidEdge.setEdgeId(edgeId);
+        if (oldSpeed != avoidEdge.getSpeed()) {
+            logger.info("Speed change [{}] at ({}, {}). Old: {}, new: {}", edge.getName(), avoidEdge.getId(), avoidEdge.getLoc()[0], oldSpeed, avoidEdge.getSpeed());
+            edge.setFlags(carEncoder.setSpeed(edge.getFlags(), avoidEdge.getSpeed()));
         }
     }
 

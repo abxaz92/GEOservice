@@ -2,6 +2,7 @@ package ru.macrobit.geoservice.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 import ru.macrobit.geoservice.service.RoutingService;
 
@@ -23,16 +24,16 @@ public class RouteController {
     @GET
     @Path("/search")
     public Object getRouteInfo(@QueryParam("from") String from, @QueryParam("to") String to) {
-        double[] fromLocs = parseLocations(from);
-        double[] toLocs = parseLocations(to);
+        double[] fromLocs = GraphUtils.parseLocations(from);
+        double[] toLocs = GraphUtils.parseLocations(to);
         return routingService.getRoute(fromLocs[0], fromLocs[1], toLocs[0], toLocs[1]);
     }
 
     @GET
     @Path("/distance")
     public Object getRouteDistance(@QueryParam("from") String from, @QueryParam("to") String to) {
-        double[] fromLocs = parseLocations(from);
-        double[] toLocs = parseLocations(to);
+        double[] fromLocs = GraphUtils.parseLocations(from);
+        double[] toLocs = GraphUtils.parseLocations(to);
         return routingService.getDistanceAndTime(fromLocs[0], fromLocs[1], toLocs[0], toLocs[1]);
     }
 
@@ -44,12 +45,5 @@ public class RouteController {
         Object res = routingService.calcDistances(batchRequest);
         logger.info("{}", System.currentTimeMillis() - a);
         return res;
-    }
-
-    private double[] parseLocations(String loc) {
-        String[] locs = loc.split(",");
-        if (locs.length != 2)
-            throw new WebApplicationException("Illegal location param", 406);
-        return new double[]{Double.parseDouble(locs[0]), Double.parseDouble(locs[1])};
     }
 }
