@@ -63,6 +63,7 @@ public class RoutingService {
     private CloseableHttpClient client;
     private TypeReference<List<AvoidEdge>> typeReference = new TypeReference<List<AvoidEdge>>() {
     };
+    private List<AvoidEdge> avoidEdges = null;
 
     @PostConstruct
     public void init() {
@@ -75,6 +76,10 @@ public class RoutingService {
         for (int i = 0; i < POOL_SIZE; i++) {
             pool.submit(() -> null);
         }
+        reloadAvoidEdges();
+    }
+
+    public void reloadAvoidEdges() {
         client = HttpClients.createMinimal();
         HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
         httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
@@ -88,13 +93,11 @@ public class RoutingService {
             }
         };
         try {
-            List<AvoidEdge> avoidEdges = client.execute(httpGet, responseHandler);
+            avoidEdges = client.execute(httpGet, responseHandler);
             avoidEdges.forEach(this::setEdgeSpeed);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {

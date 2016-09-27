@@ -3,6 +3,7 @@ package ru.macrobit.geoservice.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.common.GraphUtils;
+import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 import ru.macrobit.geoservice.service.RoutingService;
 
@@ -45,5 +46,23 @@ public class RouteController {
         Object res = routingService.calcDistances(batchRequest);
         logger.info("{}", System.currentTimeMillis() - a);
         return res;
+    }
+
+    @POST
+    @Path("avoid/")
+    public void addEdge(AvoidEdge avoidEdge) {
+        routingService.setEdgeSpeed(avoidEdge);
+    }
+
+    @PUT
+    @Path("avoid/")
+    public void putEdge(AvoidEdge avoidEdge) {
+        routingService.setEdgeSpeed(avoidEdge);
+    }
+
+    @DELETE
+    @Path("avoid/")
+    public void deleteEdge() {
+        routingService.reloadAvoidEdges();
     }
 }
