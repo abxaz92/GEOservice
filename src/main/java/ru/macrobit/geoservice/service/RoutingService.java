@@ -80,6 +80,7 @@ public class RoutingService {
     }
 
     public void reloadAvoidEdges() {
+        logger.warn("reloading...");
         client = HttpClients.createMinimal();
         HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
         httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
@@ -98,6 +99,7 @@ public class RoutingService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        logger.warn("reloaded!");
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
@@ -187,6 +189,7 @@ public class RoutingService {
         double oldSpeed = carEncoder.getSpeed(edge.getFlags());
         avoidEdge.setOldSpeed(oldSpeed);
         avoidEdge.setEdgeId(edgeId);
+        logger.info(avoidEdge.getId());
         if (oldSpeed != avoidEdge.getSpeed()) {
             logger.info("Speed change [{}] at ({}, {}). Old: {}, new: {}", edge.getName(), avoidEdge.getId(), avoidEdge.getLoc()[0], oldSpeed, avoidEdge.getSpeed());
             edge.setFlags(carEncoder.setSpeed(edge.getFlags(), avoidEdge.getSpeed()));

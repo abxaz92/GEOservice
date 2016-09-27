@@ -57,7 +57,10 @@ public class RouteController {
     @PUT
     @Path("avoid/")
     public void putEdge(AvoidEdge avoidEdge) {
-        routingService.setEdgeSpeed(avoidEdge);
+        if (!avoidEdge.isActive()) {
+            routingService.reloadAvoidEdges();
+        } else
+            routingService.setEdgeSpeed(avoidEdge);
     }
 
     @DELETE
