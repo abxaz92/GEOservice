@@ -31,6 +31,7 @@ import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,8 @@ public class RoutingService {
             pool.submit(() -> null);
         }
         client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://irtaxi.ru/taxi/rest/mapnode");
+        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode");
+        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
         ResponseHandler<List<AvoidEdge>> responseHandler = response -> {
             int status = response.getStatusLine().getStatusCode();
             if (status >= 200 && status < 300) {
