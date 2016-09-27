@@ -87,7 +87,7 @@ public class RoutingService {
         };
         try {
             List<AvoidEdge> avoidEdges = client.execute(httpGet, responseHandler);
-
+            avoidEdges.forEach(this::setEdgeSpeed);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -163,10 +163,10 @@ public class RoutingService {
 
     public void setEdgeSpeed(AvoidEdge avoidEdge) {
         if (avoidEdge.getLoc() == null) {
-            throw new RuntimeException();
+            throw new RuntimeException("location for " + avoidEdge.getId() + " is null");
         }
         if (avoidEdge.getLoc().length != 2) {
-            throw new RuntimeException();
+            throw new RuntimeException("location for " + avoidEdge.getId() + " is illegal");
         }
         Graph graph = hopper.getGraphHopperStorage();
         FlagEncoder carEncoder = hopper.getEncodingManager().getEncoder("car");
