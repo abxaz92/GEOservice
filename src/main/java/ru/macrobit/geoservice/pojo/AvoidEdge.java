@@ -1,8 +1,11 @@
 package ru.macrobit.geoservice.pojo;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Created by [david] on 27.09.16.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AvoidEdge {
     protected String id;
     protected String name;

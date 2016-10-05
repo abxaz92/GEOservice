@@ -24,7 +24,9 @@ import ru.macrobit.geoservice.pojo.Area;
 import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.annotation.PostConstruct;
-import javax.ejb.EJB;
+import javax.annotation.PreDestroy;
+import javax.ejb.Singleton;
+import javax.ejb.Startup;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -32,17 +34,19 @@ import java.util.List;
 /**
  * Created by [david] on 05.10.16.
  */
-@EJB
+@Singleton
+@Startup
 public class TaximeterService {
     private static final Logger logger = LoggerFactory.getLogger(TaximeterService.class);
     private TypeReference<List<Area>> typeReference = new TypeReference<List<Area>>() {
     };
     private PolygonsImpl polygons = new PolygonsImpl();
     private volatile boolean ready = false;
+    private Thread areaFetcher;
 
     @PostConstruct
     public void init() {
-        new Thread(() -> {
+        areaFetcher = new Thread(() -> {
             while (!ready) {
                 try {
                     reloadPolygons();
@@ -56,7 +60,8 @@ public class TaximeterService {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        });
+        areaFetcher.start();
     }
 
     public TaximeterAPIResult calculate(String tarif, List<LogEntry> logs) throws Exception {
@@ -81,7 +86,7 @@ public class TaximeterService {
     public synchronized void reloadPolygons() throws Exception {
         logger.warn("downloading areas...");
         CloseableHttpClient client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
+        HttpGet httpGet = new HttpGet("http://db/taxi/rest/area/with/factors");
         httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
         ResponseHandler<List<Area>> responseHandler = response -> {
             int status = response.getStatusLine().getStatusCode();
@@ -109,6 +114,11 @@ public class TaximeterService {
             }
         });
         logger.warn("dowloaded!");
+    }
+
+    @PreDestroy
+    public void preDestroy() {
+        areaFetcher.interrupt();
     }
 
     class TaximeterLogger implements ru.macrobit.drivertaxi.taximeter.logs.TaximeterLogger {
