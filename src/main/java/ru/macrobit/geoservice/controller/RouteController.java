@@ -5,7 +5,9 @@ import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
+import ru.macrobit.geoservice.pojo.TaximeterRequest;
 import ru.macrobit.geoservice.service.RoutingService;
+import ru.macrobit.geoservice.service.TaximeterService;
 
 import javax.ejb.EJB;
 import javax.ws.rs.*;
@@ -21,6 +23,8 @@ public class RouteController {
 
     @EJB
     private RoutingService routingService;
+    @EJB
+    private TaximeterService taximeterService;
 
     @GET
     @Path("/search")
@@ -47,6 +51,14 @@ public class RouteController {
         logger.info("{}", System.currentTimeMillis() - a);
         return res;
     }
+
+    @Path("/taximeter")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Object calculateTaximeter(TaximeterRequest taximeterRequest) throws Exception {
+        return taximeterService.calculate(taximeterRequest);
+    }
+
 
     @POST
     @Path("avoid/")

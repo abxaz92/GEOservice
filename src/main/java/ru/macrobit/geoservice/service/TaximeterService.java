@@ -21,7 +21,6 @@ import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonWithData
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.polygon.Point;
 import ru.macrobit.geoservice.pojo.Area;
-import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -64,8 +63,8 @@ public class TaximeterService {
         areaFetcher.start();
     }
 
-    public TaximeterAPIResult calculate(String tarif, List<LogEntry> logs) throws Exception {
-        TaximeterParams params = new TaximeterParamsImpl(tarif);
+    public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
+        TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
         /*int maxGpsLostTimeout = 20000;
         for (int i = 0; i < logs.size() - 1; i++) {
             if (logs.get(i).getTimestamp() - logs.get(i + 1).getTimestamp() > maxGpsLostTimeout) {
@@ -75,7 +74,7 @@ public class TaximeterService {
 
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
-                .setLocations(logs)
+                .setLocations(taximeterRequest.getLogs())
                 .setPolygons(polygons)
                 .setTaximeterLogger(new TaximeterLogger())
                 .build();

@@ -1,12 +1,14 @@
 package ru.macrobit.geoservice.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import ru.macrobit.drivertaxi.taximeter.TaximeterLocation;
 import ru.macrobit.drivertaxi.taximeter.TaximeterLocationString;
 
 /**
  * Created by [david] on 05.10.16.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LogEntry implements TaximeterLocation {
     private double lat;
     private double lon;
