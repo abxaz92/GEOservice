@@ -1,6 +1,10 @@
 package ru.macrobit.geoservice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.graphhopper.GHRequest;
+import com.graphhopper.GraphHopper;
+import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.util.shapes.GHPoint;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -20,6 +24,7 @@ import ru.macrobit.drivertaxi.taximeter.taximeterParams.TaximeterParamsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonWithDataImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.polygon.Point;
+import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.Area;
 
 import javax.annotation.PostConstruct;
@@ -29,6 +34,8 @@ import javax.ejb.Startup;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Created by [david] on 05.10.16.
@@ -42,9 +49,16 @@ public class TaximeterService {
     private PolygonsImpl polygons = new PolygonsImpl();
     private volatile boolean ready = false;
     private Thread areaFetcher;
+    private GraphHopper hopper;
 
     @PostConstruct
     public void init() {
+        hopper = new GraphHopper().forServer();
+        hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
+        hopper.setGraphHopperLocation(PropertiesFileReader.getSecondGraphFolder());
+        hopper.setEncodingManager(new EncodingManager("car"));
+        hopper.importOrLoad();
+
         areaFetcher = new Thread(() -> {
             while (!ready) {
                 try {
@@ -65,6 +79,15 @@ public class TaximeterService {
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
+        if (taximeterRequest.isPrepare()) {
+            List<GHPoint> points = taximeterRequest.getLogs().stream().map(logEntry ->
+                    new GHPoint(logEntry.getLat(), logEntry.getLon())
+            ).collect(Collectors.toList());
+            GHRequest request = new GHRequest(points).
+                    setWeighting("fastest").
+                    setVehicle("car").
+                    setLocale(Locale.US);
+        }
         /*int maxGpsLostTimeout = 20000;
         for (int i = 0; i < logs.size() - 1; i++) {
             if (logs.get(i).getTimestamp() - logs.get(i + 1).getTimestamp() > maxGpsLostTimeout) {

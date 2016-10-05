@@ -39,4 +39,8 @@ public class PropertiesFileReader {
         return properties.getProperty("graph_folder");
     }
 
+    public static String getSecondGraphFolder() {
+        return properties.getProperty("second_graph_folder");
+    }
+
 }

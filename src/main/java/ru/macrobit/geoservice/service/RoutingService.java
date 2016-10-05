@@ -48,7 +48,7 @@ public class RoutingService {
     public static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
     private GraphHopper hopper;
-    private static int POOL_SIZE = 100;
+    private static int POOL_SIZE = 300;
     private ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
         private AtomicInteger counter = new AtomicInteger();
 
@@ -56,7 +56,6 @@ public class RoutingService {
         public Thread newThread(Runnable r) {
             Thread thread = new Thread(r);
             thread.setName("RoutingServiceThreadPool " + counter.addAndGet(1));
-            logger.info(thread.getName());
             return thread;
         }
     });
