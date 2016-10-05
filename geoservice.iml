@@ -59,5 +59,6 @@
     <orderEntry type="library" name="Maven: org.apache.xmlgraphics:xmlgraphics-commons:2.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.6.1" level="project" />
     <orderEntry type="library" name="Maven: org.openstreetmap.osmosis:osmosis-osm-binary:0.44.1" level="project" />
+    <orderEntry type="library" name="Maven: ru.macrobit.drivertaxi:taximeter:2.4.0" level="project" />
   </component>
 </module>
