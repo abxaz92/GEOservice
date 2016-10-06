@@ -11,6 +11,7 @@ public class TaximeterRequest {
     private String orderId;
     private double maxDist = 300;
     private long maxTimeout = 20000;
+    private int index;
 
     public List<LogEntry> getLogs() {
         return logs;
@@ -50,5 +51,13 @@ public class TaximeterRequest {
 
     public void setMaxTimeout(long maxTimeout) {
         this.maxTimeout = maxTimeout;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 }

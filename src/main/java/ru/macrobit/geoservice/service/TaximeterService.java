@@ -117,9 +117,15 @@ public class TaximeterService {
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
+        List<LogEntry> logs;
+        if (taximeterRequest.getIndex() != 0) {
+            logs = taximeterRequest.getLogs().stream().limit(taximeterRequest.getIndex()).collect(Collectors.toList());
+        } else {
+            logs = taximeterRequest.getLogs();
+        }
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
-                .setLocations(taximeterRequest.getLogs())
+                .setLocations(logs)
                 .setPolygons(polygons)
                 .setTaximeterLogger(new TaximeterLogger())
                 .build();
