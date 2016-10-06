@@ -85,6 +85,7 @@ public class TaximeterService {
         List<LogEntry> taximeterLogs;
         List<LogEntry> logs = taximeterRequest.getLogs();
         taximeterLogs = new ArrayList<>(logs);
+        int index = 1;
         for (int i = 0; i < logs.size() - 1; i++) {
             long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
             if (timeout > taximeterRequest.getMaxTimeout()) {
@@ -92,7 +93,7 @@ public class TaximeterService {
                 Iterator<GHPoint3D> iterator = pointList.iterator();
                 long timestamp = logs.get(i).getTimestamp();
                 long incremet = (timeout / pointList.size());
-                int index = i;
+                logger.warn("from {} to {}", logs.get(i).getTimestamp(), logs.get(i + 1).getTimestamp());
                 while (iterator.hasNext()) {
                     GHPoint3D point = iterator.next();
                     timestamp += incremet;
@@ -100,13 +101,20 @@ public class TaximeterService {
                     logEntry.setLat(point.getLat());
                     logEntry.setLon(point.getLon());
                     logEntry.setTimestamp(timestamp);
-                    logEntry.setError("15");
+                    logEntry.setError(String.valueOf(logs.get(i).getTimestamp()));
                     logEntry.setSrc("gps");
                     taximeterLogs.add(index, logEntry);
                     index++;
+                    logger.warn("i {}, {}, ind {}", i, taximeterLogs.indexOf(logEntry), index);
                 }
+                index++;
+            } else {
+                index++;
             }
         }
+//        for (int i = 0; i < taximeterLogs.size() - 1; i++) {
+//            logger.info("{}", taximeterLogs.get(i + 1).getTimestamp() - taximeterLogs.get(i).getTimestamp());
+//        }
         return taximeterLogs;
     }
 
