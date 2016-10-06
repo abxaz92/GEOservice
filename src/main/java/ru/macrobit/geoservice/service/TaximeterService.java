@@ -54,6 +54,7 @@ public class TaximeterService {
     private volatile boolean ready = false;
     private Thread areaFetcher;
     private GraphHopper hopper;
+    private Map<String, List<LogEntry>> store = new HashMap<>();
 
     @PostConstruct
     public void init() {
@@ -93,7 +94,6 @@ public class TaximeterService {
                 Iterator<GHPoint3D> iterator = pointList.iterator();
                 long timestamp = logs.get(i).getTimestamp();
                 long incremet = (timeout / pointList.size());
-                logger.warn("from {} to {}", logs.get(i).getTimestamp(), logs.get(i + 1).getTimestamp());
                 while (iterator.hasNext()) {
                     GHPoint3D point = iterator.next();
                     timestamp += incremet;
@@ -101,20 +101,17 @@ public class TaximeterService {
                     logEntry.setLat(point.getLat());
                     logEntry.setLon(point.getLon());
                     logEntry.setTimestamp(timestamp);
-                    logEntry.setError(String.valueOf(logs.get(i).getTimestamp()));
+                    logEntry.setError("10");
                     logEntry.setSrc("gps");
                     taximeterLogs.add(index, logEntry);
                     index++;
-                    logger.warn("i {}, {}, ind {}", i, taximeterLogs.indexOf(logEntry), index);
                 }
                 index++;
             } else {
                 index++;
             }
         }
-//        for (int i = 0; i < taximeterLogs.size() - 1; i++) {
-//            logger.info("{}", taximeterLogs.get(i + 1).getTimestamp() - taximeterLogs.get(i).getTimestamp());
-//        }
+        store.put(taximeterRequest.getOrderId(), taximeterLogs);
         return taximeterLogs;
     }
 
