@@ -2,9 +2,13 @@ package ru.macrobit.geoservice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.graphhopper.GHRequest;
+import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
+import com.graphhopper.PathWrapper;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint;
+import com.graphhopper.util.shapes.GHPoint3D;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
@@ -24,17 +28,17 @@ import ru.macrobit.drivertaxi.taximeter.taximeterParams.TaximeterParamsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonWithDataImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.polygon.Point;
+import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.Area;
+import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -79,30 +83,55 @@ public class TaximeterService {
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
+        List<LogEntry> taximeterLogs;
         if (taximeterRequest.isPrepare()) {
-            List<GHPoint> points = taximeterRequest.getLogs().stream().map(logEntry ->
-                    new GHPoint(logEntry.getLat(), logEntry.getLon())
-            ).collect(Collectors.toList());
-            GHRequest request = new GHRequest(points).
-                    setWeighting("fastest").
-                    setVehicle("car").
-                    setLocale(Locale.US);
-        }
-        /*int maxGpsLostTimeout = 20000;
-        for (int i = 0; i < logs.size() - 1; i++) {
-            if (logs.get(i).getTimestamp() - logs.get(i + 1).getTimestamp() > maxGpsLostTimeout) {
-                routingService.calculateTrack(logs.get(i), logs.get(i + 1));
+            List<LogEntry> logs = taximeterRequest.getLogs();
+            taximeterLogs = new ArrayList<>(logs);
+            for (int i = 0; i < logs.size() - 1; i++) {
+                long timeout;
+                if ((timeout = logs.get(i).getTimestamp() - logs.get(i + 1).getTimestamp()) > taximeterRequest.getMaxTimeout()) {
+                    PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
+                    Iterator<GHPoint3D> iterator = pointList.iterator();
+                    long timestamp = logs.get(i).getTimestamp();
+                    long incremet = (timeout / pointList.size());
+                    int index = i;
+                    while (iterator.hasNext()) {
+                        GHPoint3D point = iterator.next();
+                        timestamp += incremet;
+                        LogEntry logEntry = new LogEntry();
+                        logEntry.setLat(point.getLat());
+                        logEntry.setLon(point.getLon());
+                        logEntry.setTimestamp(timestamp);
+                        logEntry.setError("15");
+                        logEntry.setSrc("gps");
+                        taximeterLogs.add(index, logEntry);
+                        index++;
+                    }
+                }
             }
-        }*/
+        } else {
+            taximeterLogs = taximeterRequest.getLogs();
+        }
 
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
-                .setLocations(taximeterRequest.getLogs())
+                .setLocations(taximeterLogs)
                 .setPolygons(polygons)
                 .setTaximeterLogger(new TaximeterLogger())
                 .build();
         TaximeterAPI api = new TaximeterAPIImpl(request);
         return api.calculate();
+    }
+
+    public PointList calcRoute(LogEntry from, LogEntry to) {
+        GHResponse rsp = hopper.route(GraphUtils.createRequest(from.getLat(), from.getLon(), to.getLat(), to.getLon()));
+        if (rsp.hasErrors()) {
+            logger.error("{}", rsp.getErrors());
+            return null;
+        }
+
+        PathWrapper path = rsp.getBest();
+        return path.getPoints();
     }
 
     public synchronized void reloadPolygons() throws Exception {

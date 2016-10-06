@@ -10,8 +10,8 @@ public class TaximeterRequest {
     private String tarif;
     private boolean prepare;
     private String orderId;
-    private double maxDist;
-    private long maxTimeout;
+    private double maxDist = 300;
+    private long maxTimeout = 20000;
 
     public List<LogEntry> getLogs() {
         return logs;
