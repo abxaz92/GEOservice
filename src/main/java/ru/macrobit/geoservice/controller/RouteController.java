@@ -52,11 +52,18 @@ public class RouteController {
         return res;
     }
 
-    @Path("/taximeter")
     @POST
+    @Path("/calculate")
     @Consumes(MediaType.APPLICATION_JSON)
     public Object calculateTaximeter(TaximeterRequest taximeterRequest) throws Exception {
         return taximeterService.calculate(taximeterRequest);
+    }
+
+    @POST
+    @Path("/build")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Object buildLogs(TaximeterRequest taximeterRequest) throws Exception {
+        return taximeterService.buildLogs(taximeterRequest);
     }
 
 

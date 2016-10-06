@@ -130,5 +130,27 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>test</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <configuration>
+                            <!--<domain>
+                                <server-groups>
+                                    <server-group>other-server-group</server-group>
+                                </server-groups>
+                            </domain>-->
+                            <hostname>80.87.201.17</hostname>
+                            <username>macrobit</username>
+                            <password>Q4862513</password>
+                            <name>geoservice.war</name>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

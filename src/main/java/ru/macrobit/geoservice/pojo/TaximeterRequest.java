@@ -8,7 +8,6 @@ import java.util.List;
 public class TaximeterRequest {
     private List<LogEntry> logs;
     private String tarif;
-    private boolean prepare;
     private String orderId;
     private double maxDist = 300;
     private long maxTimeout = 20000;
@@ -27,14 +26,6 @@ public class TaximeterRequest {
 
     public void setTarif(String tarif) {
         this.tarif = tarif;
-    }
-
-    public boolean isPrepare() {
-        return prepare;
-    }
-
-    public void setPrepare(boolean prepare) {
-        this.prepare = prepare;
     }
 
     public String getOrderId() {

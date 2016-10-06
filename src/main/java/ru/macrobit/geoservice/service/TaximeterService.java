@@ -81,41 +81,40 @@ public class TaximeterService {
         areaFetcher.start();
     }
 
-    public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
-        TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
+    public Object buildLogs(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) {
         List<LogEntry> taximeterLogs;
-        if (taximeterRequest.isPrepare()) {
-            List<LogEntry> logs = taximeterRequest.getLogs();
-            taximeterLogs = new ArrayList<>(logs);
-            for (int i = 0; i < logs.size() - 1; i++) {
-                long timeout;
-                if ((timeout = logs.get(i).getTimestamp() - logs.get(i + 1).getTimestamp()) > taximeterRequest.getMaxTimeout()) {
-                    PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
-                    Iterator<GHPoint3D> iterator = pointList.iterator();
-                    long timestamp = logs.get(i).getTimestamp();
-                    long incremet = (timeout / pointList.size());
-                    int index = i;
-                    while (iterator.hasNext()) {
-                        GHPoint3D point = iterator.next();
-                        timestamp += incremet;
-                        LogEntry logEntry = new LogEntry();
-                        logEntry.setLat(point.getLat());
-                        logEntry.setLon(point.getLon());
-                        logEntry.setTimestamp(timestamp);
-                        logEntry.setError("15");
-                        logEntry.setSrc("gps");
-                        taximeterLogs.add(index, logEntry);
-                        index++;
-                    }
+        List<LogEntry> logs = taximeterRequest.getLogs();
+        taximeterLogs = new ArrayList<>(logs);
+        for (int i = 0; i < logs.size() - 1; i++) {
+            long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
+            if (timeout > taximeterRequest.getMaxTimeout()) {
+                PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
+                Iterator<GHPoint3D> iterator = pointList.iterator();
+                long timestamp = logs.get(i).getTimestamp();
+                long incremet = (timeout / pointList.size());
+                int index = i;
+                while (iterator.hasNext()) {
+                    GHPoint3D point = iterator.next();
+                    timestamp += incremet;
+                    LogEntry logEntry = new LogEntry();
+                    logEntry.setLat(point.getLat());
+                    logEntry.setLon(point.getLon());
+                    logEntry.setTimestamp(timestamp);
+                    logEntry.setError("15");
+                    logEntry.setSrc("gps");
+                    taximeterLogs.add(index, logEntry);
+                    index++;
                 }
             }
-        } else {
-            taximeterLogs = taximeterRequest.getLogs();
         }
+        return taximeterLogs;
+    }
 
+    public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
+        TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
-                .setLocations(taximeterLogs)
+                .setLocations(taximeterRequest.getLogs())
                 .setPolygons(polygons)
                 .setTaximeterLogger(new TaximeterLogger())
                 .build();
