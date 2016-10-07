@@ -22,8 +22,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Maven: ru.macrobit.drivertaxi:taximeter:2.4.0" level="project" />
-    <orderEntry type="library" name="Maven: ru.macrobit.drivertaxi:taximeter:2.4.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: javax.enterprise:cdi-api:1.1" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: javax.el:el-api:2.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.jboss.spec.javax.interceptor:jboss-interceptors-api_1.1_spec:1.0.0.Beta1" level="project" />
@@ -62,5 +60,6 @@
     <orderEntry type="library" name="Maven: com.google.protobuf:protobuf-java:2.6.1" level="project" />
     <orderEntry type="library" name="Maven: org.openstreetmap.osmosis:osmosis-osm-binary:0.44.1" level="project" />
     <orderEntry type="library" name="Maven: ru.macrobit.drivertaxi:taximeter:2.4.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:19.0" level="project" />
   </component>
 </module>

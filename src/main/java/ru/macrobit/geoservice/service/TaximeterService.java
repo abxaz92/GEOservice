@@ -1,13 +1,13 @@
 package ru.macrobit.geoservice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.graphhopper.GHRequest;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.util.PointList;
-import com.graphhopper.util.shapes.GHPoint;
 import com.graphhopper.util.shapes.GHPoint3D;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
@@ -35,10 +35,13 @@ import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -54,7 +57,10 @@ public class TaximeterService {
     private volatile boolean ready = false;
     private Thread areaFetcher;
     private GraphHopper hopper;
-    private Map<String, List<LogEntry>> store = new HashMap<>();
+    private Cache<String, List<LogEntry>> cache = CacheBuilder.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .build();
 
     @PostConstruct
     public void init() {
@@ -111,7 +117,7 @@ public class TaximeterService {
                 index++;
             }
         }
-        store.put(taximeterRequest.getOrderId(), taximeterLogs);
+//        cache.put(taximeterRequest.getOrderId(), taximeterLogs);
         return taximeterLogs;
     }
 
