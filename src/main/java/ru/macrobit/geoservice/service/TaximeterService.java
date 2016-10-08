@@ -1,8 +1,6 @@
 package ru.macrobit.geoservice.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
@@ -43,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by [david] on 05.10.16.
@@ -58,10 +55,6 @@ public class TaximeterService {
     private volatile boolean ready = false;
     private Thread areaFetcher;
     private GraphHopper hopper;
-    private Cache<String, List<LogEntry>> cache = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            .build();
 
     @Inject
     private TaximeterLogDAO taximeterLogDAO;
