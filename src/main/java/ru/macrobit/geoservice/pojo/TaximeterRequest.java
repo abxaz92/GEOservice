@@ -7,6 +7,7 @@ public class TaximeterRequest {
     private String tarif;
     private String orderId;
     private int index;
+    private boolean build;
 
     public String getTarif() {
         return tarif;
@@ -30,5 +31,13 @@ public class TaximeterRequest {
 
     public void setIndex(int index) {
         this.index = index;
+    }
+
+    public boolean isBuild() {
+        return build;
+    }
+
+    public void setBuild(boolean build) {
+        this.build = build;
     }
 }

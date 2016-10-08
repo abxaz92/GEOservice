@@ -28,8 +28,12 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
     @Inject
     private Mongo mongo;
 
-    public List<LogEntry> getLogs(String orderId, Integer limit) {
-        Query query = new Query(new Criteria("orderId").is(orderId));
+    public List<LogEntry> getLogs(String orderId, Integer limit, boolean build) {
+        Criteria criteria = new Criteria("orderId").is(orderId);
+        if (!build) {
+            criteria.and("build").ne(true);
+        }
+        Query query = new Query(criteria);
         query.with(new Sort(Sort.Direction.ASC, "timestamp"));
         if (limit != null && limit > 0) {
             query.limit(limit);

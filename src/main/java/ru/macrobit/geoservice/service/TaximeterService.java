@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Created by [david] on 05.10.16.
@@ -85,9 +86,9 @@ public class TaximeterService {
         areaFetcher.start();
     }
 
-    public Object buildLogs(String orderId, Double maxDist, Long maxTimeout) {
+    public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
         List<LogEntry> taximeterLogs;
-        List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null);
+        List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
         taximeterLogs = new ArrayList<>(logs);
         int index = 1;
         for (int i = 0; i < logs.size() - 1; i++) {
@@ -115,12 +116,12 @@ public class TaximeterService {
                 index++;
             }
         }
-        return taximeterLogs;
+        taximeterLogDAO.bulkInsert(taximeterLogs.stream().filter(logEntry -> logEntry.isBuilded()).collect(Collectors.toList()), orderId);
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
-        List<LogEntry> logs = taximeterLogDAO.getLogs(taximeterRequest.getOrderId(), taximeterRequest.getIndex());
+        List<LogEntry> logs = taximeterLogDAO.getLogs(taximeterRequest.getOrderId(), taximeterRequest.getIndex(), taximeterRequest.isBuild());
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
                 .setLocations(logs)
