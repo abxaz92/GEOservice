@@ -77,9 +77,9 @@ public class TaximeterService {
                     try {
                         Thread.sleep(10000);
                     } catch (InterruptedException e1) {
-                        e1.printStackTrace();
+                        logger.error("{}", e1);
                     }
-                    e.printStackTrace();
+                    logger.error("{}", e);
                 }
             }
         });
