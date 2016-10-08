@@ -59,11 +59,11 @@ public class RouteController {
         return taximeterService.calculate(taximeterRequest);
     }
 
-    @POST
-    @Path("/build")
+    @GET
+    @Path("/build/{orderId}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Object buildLogs(TaximeterRequest taximeterRequest) throws Exception {
-        return taximeterService.buildLogs(taximeterRequest);
+    public Object buildLogs(String orderId, @QueryParam("maxdist") Double maxDist, @QueryParam("maxtimeout") Long maxTimeout) throws Exception {
+        return taximeterService.buildLogs(orderId, maxDist, maxTimeout);
     }
 
 

@@ -44,7 +44,6 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Created by [david] on 05.10.16.
@@ -114,6 +113,7 @@ public class TaximeterService {
                     logEntry.setTimestamp(timestamp);
                     logEntry.setError("10");
                     logEntry.setSrc("gps");
+                    logEntry.setBuilded(true);
                     taximeterLogs.add(index, logEntry);
                     index++;
                 }
@@ -122,18 +122,12 @@ public class TaximeterService {
                 index++;
             }
         }
-//        cache.put(taximeterRequest.getOrderId(), taximeterLogs);
         return taximeterLogs;
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
-        List<LogEntry> logs;
-        if (taximeterRequest.getIndex() != 0) {
-            logs = taximeterRequest.getLogs().stream().limit(taximeterRequest.getIndex()).collect(Collectors.toList());
-        } else {
-            logs = taximeterRequest.getLogs();
-        }
+        List<LogEntry> logs = taximeterLogDAO.getLogs(taximeterRequest.getOrderId(), taximeterRequest.getIndex());
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
                 .setLocations(logs)
