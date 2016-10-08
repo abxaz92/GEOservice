@@ -2,6 +2,10 @@ package ru.macrobit.geoservice.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.mapping.Document;
 import ru.macrobit.drivertaxi.taximeter.TaximeterLocation;
 import ru.macrobit.drivertaxi.taximeter.TaximeterLocationString;
 
@@ -9,12 +13,21 @@ import ru.macrobit.drivertaxi.taximeter.TaximeterLocationString;
  * Created by [david] on 05.10.16.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Document(collection = "taximeterlog")
+@CompoundIndexes({
+        @CompoundIndex(name = "orderId", def = "{orderId:1}"),
+        @CompoundIndex(name = "timestamp", def = "{timestamp:1}"),
+        @CompoundIndex(name = "timestamp_orderid", def = "{orderId:1, timestamp:1}", unique = true)
+})
 public class LogEntry implements TaximeterLocation {
+    @Id
+    private String id;
     private double lat;
     private double lon;
     private long timestamp;
     private String src;
     private String error;
+    private boolean builded;
 
     public double getLat() {
         return lat;
@@ -120,5 +133,21 @@ public class LogEntry implements TaximeterLocation {
         result = 31 * result + (int) (temp ^ (temp >>> 32));
         result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
         return result;
+    }
+
+    public boolean isBuilded() {
+        return builded;
+    }
+
+    public void setBuilded(boolean builded) {
+        this.builded = builded;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

@@ -67,6 +67,14 @@
             <version>2.4.0</version>
         </dependency>
 
+        <!-- Mongodb -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-mongodb</artifactId>
+            <version>1.9.4.RELEASE</version>
+        </dependency>
+
+
         <!-- Google guava -->
         <dependency>
             <groupId>com.google.guava</groupId>

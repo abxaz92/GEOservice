@@ -28,6 +28,7 @@ import ru.macrobit.drivertaxi.taximeter.taximeterParams.TaximeterParamsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonWithDataImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.polygon.Point;
+import ru.macrobit.geoservice.TaximeterLogDAO;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.Area;
@@ -37,6 +38,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
@@ -61,6 +63,9 @@ public class TaximeterService {
             .maximumSize(100)
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
+
+    @Inject
+    private TaximeterLogDAO taximeterLogDAO;
 
     @PostConstruct
     public void init() {
@@ -88,14 +93,14 @@ public class TaximeterService {
         areaFetcher.start();
     }
 
-    public Object buildLogs(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) {
+    public Object buildLogs(String orderId, Double maxDist, Long maxTimeout) {
         List<LogEntry> taximeterLogs;
-        List<LogEntry> logs = taximeterRequest.getLogs();
+        List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null);
         taximeterLogs = new ArrayList<>(logs);
         int index = 1;
         for (int i = 0; i < logs.size() - 1; i++) {
             long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
-            if (timeout > taximeterRequest.getMaxTimeout()) {
+            if (timeout > maxTimeout) {
                 PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
                 Iterator<GHPoint3D> iterator = pointList.iterator();
                 long timestamp = logs.get(i).getTimestamp();
