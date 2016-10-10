@@ -27,6 +27,7 @@ import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
@@ -184,6 +185,11 @@ public class RoutingService {
             logger.info("Speed change [{}] at ({}, {}). Old: {}, new: {}", edge.getName(), avoidEdge.getId(), avoidEdge.getLoc()[0], oldSpeed, avoidEdge.getSpeed());
             edge.setFlags(carEncoder.setSpeed(edge.getFlags(), avoidEdge.getSpeed()));
         }
+    }
+
+    @PreDestroy
+    public void preDestroy() {
+        pool.shutdown();
     }
 
 }

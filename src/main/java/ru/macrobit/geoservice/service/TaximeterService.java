@@ -175,7 +175,7 @@ public class TaximeterService {
             try {
                 response.put(key, val.get(7, TimeUnit.MILLISECONDS));
             } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                response.put(key, -1d);
+                response.put(key, GraphUtils.getDummyDist(batchRequest.getSrc(), batchRequest.getDests().get(key)));
             }
         });
         return response;
@@ -221,6 +221,7 @@ public class TaximeterService {
     @PreDestroy
     public void preDestroy() {
         areaFetcher.interrupt();
+        pool.shutdown();
     }
 
     class TaximeterLogger implements ru.macrobit.drivertaxi.taximeter.logs.TaximeterLogger {

@@ -43,7 +43,11 @@ public class GraphUtils {
         return path.getDistance();
     }
 
-    public static double getDist(double llat1, double llong1, double llat2, double llong2) {
+    public static double getDummyDist(double[] from, double[] to) {
+        return getDummyDist(from[0], from[1], to[0], to[1]);
+    }
+
+    public static double getDummyDist(double llat1, double llong1, double llat2, double llong2) {
 
         double lat1 = llat1 * Math.PI / ROUND_CONST;
         double lat2 = llat2 * Math.PI / ROUND_CONST;
