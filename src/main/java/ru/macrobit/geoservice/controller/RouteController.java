@@ -52,7 +52,7 @@ public class RouteController {
             res = routingService.calcDistances(batchRequest);
         else
             res = taximeterService.calcDistances(batchRequest);
-        logger.info("{} {}", fast == null ? "" : "fast", System.currentTimeMillis() - a);
+        logger.info("{} {}", fast == null ? "slow" : "fast", System.currentTimeMillis() - a);
         return res;
     }
 
