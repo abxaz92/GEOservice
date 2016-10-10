@@ -140,18 +140,9 @@ public class RoutingService {
     }
 
     private double getDistance(double[] from, double[] to) {
-        return getDistance(from[0], from[1], to[0], to[1]);
+        return GraphUtils.getDistance(from[0], from[1], to[0], to[1], hopper);
     }
 
-    private double getDistance(double fromLat, double fromLon, double toLat, double toLon) {
-        GHResponse rsp = hopper.route(GraphUtils.createRequest(fromLat, fromLon, toLat, toLon));
-        if (rsp.hasErrors()) {
-            logger.error("{}", rsp.getErrors());
-            return -1;
-        }
-        PathWrapper path = rsp.getBest();
-        return path.getDistance();
-    }
 
     public Object getDistanceAndTime(double fromLat, double fromLon, double toLat, double toLon) {
         GHResponse rsp = hopper.route(GraphUtils.createRequest(fromLat, fromLon, toLat, toLon));

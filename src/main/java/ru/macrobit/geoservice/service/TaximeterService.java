@@ -30,6 +30,7 @@ import ru.macrobit.geoservice.TaximeterLogDAO;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.Area;
+import ru.macrobit.geoservice.pojo.BatchRequest;
 import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.annotation.PostConstruct;
@@ -37,10 +38,9 @@ import javax.annotation.PreDestroy;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -56,6 +56,17 @@ public class TaximeterService {
     private volatile boolean ready = false;
     private Thread areaFetcher;
     private GraphHopper hopper;
+    private static int POOL_SIZE = 300;
+    private ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
+        private AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r);
+            thread.setName("RoutingServiceThreadPool " + counter.addAndGet(1));
+            return thread;
+        }
+    });
 
     @Inject
     private TaximeterLogDAO taximeterLogDAO;
@@ -67,7 +78,6 @@ public class TaximeterService {
         hopper.setGraphHopperLocation(PropertiesFileReader.getSecondGraphFolder());
         hopper.setEncodingManager(new EncodingManager("car"));
         hopper.importOrLoad();
-
         areaFetcher = new Thread(() -> {
             while (!ready) {
                 try {
@@ -84,6 +94,9 @@ public class TaximeterService {
             }
         });
         areaFetcher.start();
+        for (int i = 0; i < POOL_SIZE; i++) {
+            pool.submit(() -> null);
+        }
     }
 
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
@@ -141,6 +154,35 @@ public class TaximeterService {
 
         PathWrapper path = rsp.getBest();
         return path.getPoints();
+    }
+
+    public Object calcDistances(BatchRequest batchRequest) {
+        int batchSize = batchRequest.getDests().values().size();
+        if (batchSize == 0) {
+            return null;
+        }
+        if (batchSize == 1) {
+            Map<String, Double> resMap = new HashMap<>();
+            Map.Entry<String, double[]> entry = batchRequest.getDests().entrySet().iterator().next();
+            resMap.put(entry.getKey(), getDistance(batchRequest.getSrc(), entry.getValue()));
+            return resMap;
+        }
+
+        Map<String, Future<Double>> futureMap = new HashMap<>();
+        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> getDistance(location, batchRequest.getSrc()))));
+        Map<String, Double> response = new HashMap<>();
+        futureMap.forEach((key, val) -> {
+            try {
+                response.put(key, val.get(7, TimeUnit.MILLISECONDS));
+            } catch (TimeoutException | InterruptedException | ExecutionException e) {
+                response.put(key, -1d);
+            }
+        });
+        return response;
+    }
+
+    private double getDistance(double[] from, double[] to) {
+        return GraphUtils.getDistance(from[0], from[1], to[0], to[1], hopper);
     }
 
     public synchronized void reloadPolygons() throws Exception {
