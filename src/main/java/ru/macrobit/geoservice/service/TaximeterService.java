@@ -4,7 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
+import com.graphhopper.matching.LocationIndexMatch;
+import com.graphhopper.matching.MapMatching;
+import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.storage.GraphHopperStorage;
+import com.graphhopper.storage.index.LocationIndexTree;
+import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint3D;
 import org.apache.http.HttpEntity;
@@ -57,6 +63,7 @@ public class TaximeterService {
     private Thread areaFetcher;
     private GraphHopper hopper;
     private static int POOL_SIZE = 300;
+    CarFlagEncoder encoder = new CarFlagEncoder();
     private ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE, new ThreadFactory() {
         private AtomicInteger counter = new AtomicInteger();
 
@@ -76,7 +83,7 @@ public class TaximeterService {
         hopper = new GraphHopper().forServer();
         hopper.setOSMFile(PropertiesFileReader.getOsmFilePath());
         hopper.setGraphHopperLocation(PropertiesFileReader.getSecondGraphFolder());
-        hopper.setEncodingManager(new EncodingManager("car"));
+        hopper.setEncodingManager(new EncodingManager(encoder));
         hopper.importOrLoad();
         areaFetcher = new Thread(() -> {
             while (!ready) {
@@ -102,6 +109,13 @@ public class TaximeterService {
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
         List<LogEntry> taximeterLogs;
         List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
+
+        GraphHopperStorage graph = hopper.getGraphHopperStorage();
+        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
+                (LocationIndexTree) hopper.getLocationIndex());
+        MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
+//        List<GPXEntry> gpxEntries = logs.stream().ma
+
         taximeterLogs = new ArrayList<>(logs);
         int index = 1;
         for (int i = 0; i < logs.size() - 1; i++) {

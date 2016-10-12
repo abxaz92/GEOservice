@@ -60,6 +60,12 @@
             <version>0.7.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.graphhopper</groupId>
+            <artifactId>map-matching</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
         <!-- Taximeter -->
         <dependency>
             <groupId>ru.macrobit.drivertaxi</groupId>
