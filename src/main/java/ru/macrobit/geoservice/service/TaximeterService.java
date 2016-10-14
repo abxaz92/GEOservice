@@ -102,6 +102,19 @@ public class TaximeterService {
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
         List<LogEntry> taximeterLogs;
         List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
+        /*
+        GraphHopperStorage graph = hopper.getGraphHopperStorage();
+        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
+                (LocationIndexTree) hopper.getLocationIndex());
+        MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
+        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
+        MatchResult mr = mapMatching.doWork(gpxEntries);
+        List<EdgeMatch> matches = mr.getEdgeMatches();
+        logs = matches.stream().map(edge -> {
+            LogEntry log = new LogEntry();
+            log.setLat();
+        }).collect(Collectors.toList());
+*/
         taximeterLogs = new ArrayList<>(logs);
         int index = 1;
         for (int i = 0; i < logs.size() - 1; i++) {
@@ -129,7 +142,7 @@ public class TaximeterService {
                 index++;
             }
         }
-        taximeterLogDAO.bulkInsert(taximeterLogs.stream().filter(logEntry -> logEntry.isBuilded()).collect(Collectors.toList()), orderId);
+        taximeterLogDAO.bulkInsert(taximeterLogs.stream().filter(logEntry -> logEntry.isBuilded()).collect(Collectors.toSet()), orderId);
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
