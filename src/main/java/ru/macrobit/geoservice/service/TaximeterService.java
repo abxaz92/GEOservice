@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
+import com.graphhopper.matching.EdgeMatch;
 import com.graphhopper.matching.LocationIndexMatch;
 import com.graphhopper.matching.MapMatching;
+import com.graphhopper.matching.MatchResult;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.storage.GraphHopperStorage;
@@ -114,10 +116,24 @@ public class TaximeterService {
         LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
                 (LocationIndexTree) hopper.getLocationIndex());
         MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
-//        List<GPXEntry> gpxEntries = logs.stream().ma
+        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
+        mapMatching.setForceRepair(true);
+        MatchResult mr = mapMatching.doWork(gpxEntries);
+        List<EdgeMatch> matches = mr.getEdgeMatches();
+        logs = new ArrayList<>();
+        for (EdgeMatch match : matches) {
+            logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
+                LogEntry log = new LogEntry();
+                log.setLat(gpx.getQueryResult().getSnappedPoint().getLat());
+                log.setLon(gpx.getQueryResult().getSnappedPoint().getLon());
+                log.setTimestamp(gpx.getEntry().getTime());
+                return log;
+            }).collect(Collectors.toSet()));
+        }
+        Collections.sort(logs, (o1, o2) -> Long.compare(o1.getTimestamp(), o2.getTimestamp()));
 
-        taximeterLogs = new ArrayList<>(logs);
         int index = 1;
+        taximeterLogs = new ArrayList<>(logs);
         for (int i = 0; i < logs.size() - 1; i++) {
             long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
             if (timeout > maxTimeout) {
@@ -143,7 +159,10 @@ public class TaximeterService {
                 index++;
             }
         }
-        taximeterLogDAO.bulkInsert(taximeterLogs.stream().filter(logEntry -> logEntry.isBuilded()).collect(Collectors.toSet()), orderId);
+        logger.warn("{}", taximeterLogs.size());
+        taximeterLogDAO.bulkInsert(taximeterLogs.stream()
+//                .filter(logEntry -> logEntry.isBuilded())
+                .collect(Collectors.toSet()), orderId);
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {

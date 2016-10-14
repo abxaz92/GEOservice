@@ -15,6 +15,7 @@ import ru.macrobit.geoservice.pojo.LogEntry;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -41,7 +42,8 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
         return find(query, null);
     }
 
-    public void bulkInsert(List<LogEntry> logs, String orderId) {
+    public void bulkInsert(Collection<LogEntry> logs, String orderId) {
+        log.warn("{}", logs.size());
         if (logs.isEmpty())
             return;
         try {
@@ -53,7 +55,8 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
                 dbObject.put("timestamp", log.getTimestamp());
                 dbObject.put("src", log.getSrc());
                 dbObject.put("error", log.getError());
-                dbObject.put("orderId", orderId);
+                dbObject.put("builded", log.isBuilded());
+                dbObject.put("orderId", "57f5f908e4b0d157ef27ad9d1");
                 bulkWriteOperation.insert(dbObject);
             });
             bulkWriteOperation.execute();

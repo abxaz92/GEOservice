@@ -115,24 +115,15 @@ public class LogEntry implements TaximeterLocation {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        LogEntry that = (LogEntry) o;
+        LogEntry logEntry = (LogEntry) o;
 
-        if (Double.compare(that.lat, lat) != 0) return false;
-        if (Double.compare(that.lon, lon) != 0) return false;
-        return timestamp == that.timestamp;
+        return timestamp == logEntry.timestamp;
 
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        temp = Double.doubleToLongBits(lat);
-        result = (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(lon);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
-        return result;
+        return (int) (timestamp ^ (timestamp >>> 32));
     }
 
     public boolean isBuilded() {
