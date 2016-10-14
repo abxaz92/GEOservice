@@ -56,7 +56,7 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
                 dbObject.put("src", log.getSrc());
                 dbObject.put("error", log.getError());
                 dbObject.put("builded", log.isBuilded());
-                dbObject.put("orderId", "57f5f908e4b0d157ef27ad9d1");
+                dbObject.put("orderId", orderId);
                 bulkWriteOperation.insert(dbObject);
             });
             bulkWriteOperation.execute();
