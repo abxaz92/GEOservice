@@ -1,5 +1,6 @@
 package ru.macrobit.geoservice.common;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
@@ -9,7 +10,9 @@ import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.service.RoutingService;
 
 import javax.ws.rs.WebApplicationException;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Created by [David] on 22.09.16.
@@ -18,6 +21,7 @@ public class GraphUtils {
     private static final Logger logger = LoggerFactory.getLogger(RoutingService.class);
     private static final double ROUND_CONST = 180;
     private static final double RAD = 6372795;
+    public static ObjectMapper MAPPER = new ObjectMapper();
 
     public static GHRequest createRequest(double fromLat, double fromLon, double toLat, double toLon) {
         return new GHRequest(fromLat, fromLon, toLat, toLon).
@@ -45,6 +49,18 @@ public class GraphUtils {
 
     public static double getDummyDist(double[] from, double[] to) {
         return getDummyDist(from[0], from[1], to[0], to[1]);
+    }
+
+    public static Map<String, String> getQueryMap(String query) {
+        String[] params = query.split("&");
+        Map<String, String> map = new HashMap<>();
+        for (String param : params) {
+            String[] splitedParam = param.split("=");
+            String name = splitedParam[0];
+            String value = splitedParam.length == 2 ? splitedParam[1] : "";
+            map.put(name, value);
+        }
+        return map;
     }
 
     public static double getDummyDist(double llat1, double llong1, double llat2, double llong2) {
