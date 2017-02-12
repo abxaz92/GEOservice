@@ -109,8 +109,15 @@ public class TaximeterService {
     }
 
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
-        List<LogEntry> taximeterLogs;
         List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
+        logs = makeSmooth(logs, maxTimeout);
+        logger.warn("{}", logs);
+        taximeterLogDAO.bulkInsert(logs.stream()
+//                .filter(logEntry -> logEntry.isBuilded())
+                .collect(Collectors.toSet()), orderId);
+    }
+
+    public List<LogEntry> makeSmooth(List<LogEntry> logs, Long maxTimeout) {
 
         GraphHopperStorage graph = hopper.getGraphHopperStorage();
         LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
@@ -130,10 +137,10 @@ public class TaximeterService {
                 return log;
             }).collect(Collectors.toSet()));
         }
-        Collections.sort(logs, (o1, o2) -> Long.compare(o1.getTimestamp(), o2.getTimestamp()));
+        Collections.sort(logs, Comparator.comparingLong(LogEntry::getTimestamp));
 
         int index = 1;
-        taximeterLogs = new ArrayList<>(logs);
+        List<LogEntry> taximeterLogs = new ArrayList<>(logs);
         for (int i = 0; i < logs.size() - 1; i++) {
             long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
             if (timeout > maxTimeout) {
@@ -159,10 +166,7 @@ public class TaximeterService {
                 index++;
             }
         }
-        logger.warn("{}", taximeterLogs.size());
-        taximeterLogDAO.bulkInsert(taximeterLogs.stream()
-//                .filter(logEntry -> logEntry.isBuilded())
-                .collect(Collectors.toSet()), orderId);
+        return taximeterLogs;
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
