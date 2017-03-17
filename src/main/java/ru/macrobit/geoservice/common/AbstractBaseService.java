@@ -67,6 +67,15 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    public T findOne(Query query, User user) {
+        if (user == null) {
+            return getMt().findOne(query, this.type);
+        } else {
+            return getMt().findOne(query.addCriteria(getUserScopeCriteria(user)),
+                    this.type);
+        }
+    }
+
     /**
      * Find by user scope
      *
