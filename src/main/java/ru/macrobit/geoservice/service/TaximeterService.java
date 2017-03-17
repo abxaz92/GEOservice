@@ -16,6 +16,7 @@ import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint3D;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
@@ -87,6 +88,11 @@ public class TaximeterService {
         hopper.setGraphHopperLocation(PropertiesFileReader.getSecondGraphFolder());
         hopper.setEncodingManager(new EncodingManager(encoder));
         hopper.importOrLoad();
+        startAreaFetcher();
+        initThreadPool();
+    }
+
+    private void startAreaFetcher() {
         areaFetcher = new Thread(() -> {
             while (!ready) {
                 try {
@@ -103,6 +109,9 @@ public class TaximeterService {
             }
         });
         areaFetcher.start();
+    }
+
+    private void initThreadPool() {
         for (int i = 0; i < POOL_SIZE; i++) {
             pool.submit(() -> null);
         }
@@ -118,36 +127,22 @@ public class TaximeterService {
     }
 
     public List<LogEntry> makeSmooth(List<LogEntry> logs, Long maxTimeout) {
+        logs = bindLocationsToRoad(logs);
+        sortLocationsList(logs);
+        List<LogEntry> taximeterLogs = interpolateLocationTrack(logs, maxTimeout);
+        return taximeterLogs;
+    }
 
-        GraphHopperStorage graph = hopper.getGraphHopperStorage();
-        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
-                (LocationIndexTree) hopper.getLocationIndex());
-        MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
-        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
-        mapMatching.setForceRepair(true);
-        MatchResult mr = mapMatching.doWork(gpxEntries);
-        List<EdgeMatch> matches = mr.getEdgeMatches();
-        logs = new ArrayList<>();
-        for (EdgeMatch match : matches) {
-            logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
-                LogEntry log = new LogEntry();
-                log.setLat(gpx.getQueryResult().getSnappedPoint().getLat());
-                log.setLon(gpx.getQueryResult().getSnappedPoint().getLon());
-                log.setTimestamp(gpx.getEntry().getTime());
-                return log;
-            }).collect(Collectors.toSet()));
-        }
-        Collections.sort(logs, Comparator.comparingLong(LogEntry::getTimestamp));
-
+    private List<LogEntry> interpolateLocationTrack(List<LogEntry> logs, Long maxPermitedTimeout) {
         int index = 1;
         List<LogEntry> taximeterLogs = new ArrayList<>(logs);
         for (int i = 0; i < logs.size() - 1; i++) {
-            long timeout = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
-            if (timeout > maxTimeout) {
+            long timeoutBetweenCurrentLocations = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
+            if (timeoutBetweenCurrentLocations > maxPermitedTimeout) {
                 PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
                 Iterator<GHPoint3D> iterator = pointList.iterator();
                 long timestamp = logs.get(i).getTimestamp();
-                long incremet = (timeout / pointList.size());
+                long incremet = (timeoutBetweenCurrentLocations / pointList.size());
                 while (iterator.hasNext()) {
                     GHPoint3D point = iterator.next();
                     timestamp += incremet;
@@ -167,6 +162,32 @@ public class TaximeterService {
             }
         }
         return taximeterLogs;
+    }
+
+    private void sortLocationsList(List<LogEntry> logs) {
+        Collections.sort(logs, Comparator.comparingLong(LogEntry::getTimestamp));
+    }
+
+    private List<LogEntry> bindLocationsToRoad(List<LogEntry> logs) {
+        GraphHopperStorage graph = hopper.getGraphHopperStorage();
+        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
+                (LocationIndexTree) hopper.getLocationIndex());
+        MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
+        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
+        mapMatching.setForceRepair(true);
+        MatchResult mr = mapMatching.doWork(gpxEntries);
+        List<EdgeMatch> matches = mr.getEdgeMatches();
+        logs = new ArrayList<>();
+        for (EdgeMatch match : matches) {
+            logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
+                LogEntry log = new LogEntry();
+                log.setLat(gpx.getQueryResult().getSnappedPoint().getLat());
+                log.setLon(gpx.getQueryResult().getSnappedPoint().getLon());
+                log.setTimestamp(gpx.getEntry().getTime());
+                return log;
+            }).collect(Collectors.toSet()));
+        }
+        return logs;
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
@@ -224,35 +245,49 @@ public class TaximeterService {
 
     public synchronized void reloadPolygons() throws Exception {
         logger.warn("downloading areas...");
-        CloseableHttpClient client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/area/with/factors");
-        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
-        ResponseHandler<List<Area>> responseHandler = response -> {
-            int status = response.getStatusLine().getStatusCode();
-            if (status >= 200 && status < 300) {
-                HttpEntity entity = response.getEntity();
-                return entity != null ? RoutingService.MAPPER.readValue(entity.getContent(), typeReference) : null;
-            } else {
-                throw new ClientProtocolException("Unexpected response status: " + status);
-            }
-        };
-        List<Area> areas = client.execute(httpGet, responseHandler);
+        List<Area> areas = fetchAreas();
+        buildPolygonWithDataObj(areas);
+        logger.warn("dowloaded!");
+    }
+
+    private void buildPolygonWithDataObj(List<Area> areas) {
         areas.stream().forEach(area -> {
-            List<Point> points = new ArrayList<>();
             try {
-                if (area.getLoc() != null &&
-                        area.getLoc().getCoordinates() != null &&
-                        area.getLoc().getCoordinates().size() > 0 &&
-                        area.getLoc().getCoordinates().get(0).size() > 0) {
-                    area.getLoc().getCoordinates().get(0).stream().forEach(p -> points.add(new Point(p.get(0).floatValue(), p.get(1).floatValue())));
+                if (area.isValid()) {
+                    List<Point> points = convertToPoints(area);
+                    PolygonWithDataImpl polygonWithData = new PolygonWithDataImpl(points, area.getName(), (float) area.getFactor(), area.getDescription());
+                    polygons.addPolygon(polygonWithData);
                 }
-                PolygonWithDataImpl polygonWithData = new PolygonWithDataImpl(points, area.getName(), (float) area.getFactor(), area.getDescription());
-                polygons.addPolygon(polygonWithData);
             } catch (Exception e) {
                 logger.error("{} : {}", area.getName(), e);
             }
         });
-        logger.warn("dowloaded!");
+    }
+
+    private List<Point> convertToPoints(Area area) {
+        return area.getLoc()
+                .getCoordinates()
+                .get(0)
+                .stream().map(p -> new Point(p.get(0).floatValue(), p.get(1).floatValue())).collect(Collectors.toList());
+    }
+
+
+    private List<Area> fetchAreas() throws java.io.IOException {
+        CloseableHttpClient client = HttpClients.createMinimal();
+        HttpGet httpGet = new HttpGet("http://db/taxi/rest/area/with/factors");
+        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+        ResponseHandler<List<Area>> responseHandler = response -> getAreas(response);
+        return client.execute(httpGet, responseHandler);
+    }
+
+    private List<Area> getAreas(HttpResponse response) throws java.io.IOException {
+        int status = response.getStatusLine().getStatusCode();
+        if (status >= 200 && status < 300) {
+            HttpEntity entity = response.getEntity();
+            return entity != null ? RoutingService.MAPPER.readValue(entity.getContent(), typeReference) : null;
+        } else {
+            throw new ClientProtocolException("Unexpected response status: " + status);
+        }
     }
 
     @PreDestroy

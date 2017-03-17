@@ -104,4 +104,11 @@ public class Area {
     public void setId(String id) {
         this.id = id;
     }
+
+    public boolean isValid() {
+        return this.getLoc() != null &&
+                this.getLoc().getCoordinates() != null &&
+                this.getLoc().getCoordinates().size() > 0 &&
+                this.getLoc().getCoordinates().get(0).size() > 0;
+    }
 }
