@@ -23,6 +23,12 @@ public abstract class AbstractBaseService<T> {
 
     protected abstract MongoOperations getMt();
 
+    /**
+     * Count documents in collection by user scope
+     *
+     * @param user
+     * @return document count
+     */
     public Long count(User user) {
         if (user == null) {
             return getMt().count(new Query(), this.type);
@@ -31,6 +37,11 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    /**
+     * @param query
+     * @param user
+     * @return document count by query
+     */
     public Long count(Query query, User user) {
         if (user == null) {
             return getMt().count(query, this.type);
@@ -40,6 +51,13 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    /**
+     * Find document by Id
+     *
+     * @param id
+     * @param user
+     * @return T extends Entity
+     */
     public T findById(String id, User user) {
         if (user == null) {
             return getMt().findById(id, this.type);
@@ -49,6 +67,12 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    /**
+     * Find by user scope
+     *
+     * @param user
+     * @return List of entities
+     */
     public List<T> find(User user) {
         if (user == null) {
             return getMt().findAll(this.type);
@@ -57,6 +81,15 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    /**
+     * Find by user scope with skip and limit
+     *
+     * @param user
+     * @param skip
+     * @param limit
+     * @param sort
+     * @return
+     */
     public List<T> find(User user, Integer skip, Integer limit, Sort sort) {
         Query query = null;
         if (user == null) {
@@ -74,6 +107,16 @@ public abstract class AbstractBaseService<T> {
         return getMt().find(query, this.type);
     }
 
+    /**
+     * Find by user scope and query with skip and limit
+     *
+     * @param query
+     * @param user
+     * @param skip
+     * @param limit
+     * @param sort
+     * @return
+     */
     public List<T> find(Query query, User user, Integer skip, Integer limit,
                         Sort sort) {
         if (user != null) {
@@ -89,6 +132,11 @@ public abstract class AbstractBaseService<T> {
         return getMt().find(query, this.type);
     }
 
+    /**
+     * @param query
+     * @param user
+     * @return
+     */
     public List<T> find(Query query, User user) {
         if (user == null) {
             return getMt().find(query, this.type);
@@ -98,38 +146,88 @@ public abstract class AbstractBaseService<T> {
         }
     }
 
+    /**
+     * Delete multi documents by query
+     *
+     * @param query
+     */
     public void remove(Query query) {
         getMt().remove(query, this.type);
     }
 
+    /**
+     * Batch insert
+     *
+     * @param entities
+     */
     public void insert(List<T> entities) {
         getMt().insert(entities, this.type);
     }
 
+    /**
+     * Insert single entity
+     *
+     * @param entity
+     */
     public void insert(T entity) {
         getMt().insert(entity);
     }
 
+    /**
+     * Replace entity
+     *
+     * @param entity
+     */
     public void save(T entity) {
         getMt().save(entity);
     }
 
+    /**
+     * Delete entity
+     *
+     * @param entity
+     */
     public void remove(T entity) {
         getMt().remove(entity);
     }
 
+    /**
+     * Multi update by query
+     *
+     * @param query
+     * @param update
+     */
     public void updateMulti(Query query, Update update) {
         getMt().updateMulti(query, update, this.type);
     }
 
+    /**
+     * Atomic update document or insert if not exists
+     *
+     * @param id
+     * @param update
+     */
     public void upsert(String id, Update update) {
         getMt().upsert(new Query(Criteria.where("id").is(id)), update, this.type);
     }
 
+    /**
+     * User scope criteria
+     *
+     * @param user
+     * @return criteria
+     */
     protected Criteria getUserScopeCriteria(User user) {
         return new Criteria();
     }
 
+    /**
+     * Atomic update document and return just updated
+     *
+     * @param id
+     * @param update
+     * @return
+     */
     public T findAndUpdate(String id, Update update) {
         return getMt().findAndModify(new Query(Criteria.where("id").is(id)), update, option, this.type);
     }
