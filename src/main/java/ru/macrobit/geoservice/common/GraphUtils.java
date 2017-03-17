@@ -23,6 +23,15 @@ public class GraphUtils {
     private static final double RAD = 6372795;
     public static ObjectMapper MAPPER = new ObjectMapper();
 
+    /**
+     * Create Graph Hopper Request for 2 location points
+     *
+     * @param fromLat from latitude
+     * @param fromLon form longtitude
+     * @param toLat   to latitude
+     * @param toLon   to longtitude
+     * @return
+     */
     public static GHRequest createRequest(double fromLat, double fromLon, double toLat, double toLon) {
         return new GHRequest(fromLat, fromLon, toLat, toLon).
                 setWeighting("fastest").
@@ -30,6 +39,12 @@ public class GraphUtils {
                 setLocale(Locale.US);
     }
 
+    /**
+     * Parse location array from string like"42.512,41.356"
+     *
+     * @param loc
+     * @return array of double with size 2
+     */
     public static double[] parseLocations(String loc) {
         String[] locs = loc.split(",");
         if (locs.length != 2)
@@ -37,6 +52,16 @@ public class GraphUtils {
         return new double[]{Double.parseDouble(locs[0]), Double.parseDouble(locs[1])};
     }
 
+    /**
+     * Calculate distance between 2 locations by route
+     *
+     * @param fromLat from latitude
+     * @param fromLon form longtitude
+     * @param toLat   to latitude
+     * @param toLon   to longtitude
+     * @param hopper  Graph hopper location index object
+     * @return
+     */
     public static double getDistance(double fromLat, double fromLon, double toLat, double toLon, GraphHopper hopper) {
         GHResponse rsp = hopper.route(GraphUtils.createRequest(fromLat, fromLon, toLat, toLon));
         if (rsp.hasErrors()) {
@@ -47,10 +72,23 @@ public class GraphUtils {
         return path.getDistance();
     }
 
+    /**
+     * Calculate distance between 2 locations by straight line
+     *
+     * @param from
+     * @param to
+     * @return distance
+     */
     public static double getDummyDist(double[] from, double[] to) {
         return getDummyDist(from[0], from[1], to[0], to[1]);
     }
 
+    /**
+     * Generate Map by HTTP get request
+     *
+     * @param query
+     * @return Map with request params
+     */
     public static Map<String, String> getQueryMap(String query) {
         String[] params = query.split("&");
         Map<String, String> map = new HashMap<>();
@@ -63,12 +101,19 @@ public class GraphUtils {
         return map;
     }
 
-    public static double getDummyDist(double llat1, double llong1, double llat2, double llong2) {
+    /**
+     * @param fromLat  from latitude
+     * @param fromLong form longtitude
+     * @param toLat    to latitude
+     * @param toLong   to longtitude
+     * @return
+     */
+    public static double getDummyDist(double fromLat, double fromLong, double toLat, double toLong) {
 
-        double lat1 = llat1 * Math.PI / ROUND_CONST;
-        double lat2 = llat2 * Math.PI / ROUND_CONST;
-        double long1 = llong1 * Math.PI / ROUND_CONST;
-        double long2 = llong2 * Math.PI / ROUND_CONST;
+        double lat1 = fromLat * Math.PI / ROUND_CONST;
+        double lat2 = toLat * Math.PI / ROUND_CONST;
+        double long1 = fromLong * Math.PI / ROUND_CONST;
+        double long2 = toLong * Math.PI / ROUND_CONST;
 
         double cl1 = Math.cos(lat1);
         double cl2 = Math.cos(lat2);
