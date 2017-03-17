@@ -14,6 +14,7 @@ import com.graphhopper.storage.index.QueryResult;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
@@ -32,6 +33,7 @@ import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import java.io.IOException;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -73,33 +75,50 @@ public class RoutingService {
         hopper.setGraphHopperLocation(PropertiesFileReader.getGraphFolder());
         hopper.setEncodingManager(new EncodingManager("car"));
         hopper.importOrLoad();
+        initThreadPool();
+        reloadAvoidEdges();
+    }
+
+    /**
+     * Init every Thread in pool on startup
+     */
+    private void initThreadPool() {
         for (int i = 0; i < POOL_SIZE; i++) {
             pool.submit(() -> null);
         }
-        reloadAvoidEdges();
     }
 
     public void reloadAvoidEdges() {
         logger.warn("reloading...");
-        client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
-        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
-        ResponseHandler<List<AvoidEdge>> responseHandler = response -> {
-            int status = response.getStatusLine().getStatusCode();
-            if (status >= 200 && status < 300) {
-                HttpEntity entity = response.getEntity();
-                return entity != null ? MAPPER.readValue(entity.getContent(), typeReference) : null;
-            } else {
-                throw new ClientProtocolException("Unexpected response status: " + status);
-            }
-        };
         try {
-            avoidEdges = client.execute(httpGet, responseHandler);
-            avoidEdges.forEach(this::setEdgeSpeed);
-        } catch (Exception e) {
+            avoidEdges = fetchAvoidEdges();
+            reAssignSpeedForEdges();
+        } catch (IOException e) {
             e.printStackTrace();
         }
         logger.warn("reloaded!");
+    }
+
+    private void reAssignSpeedForEdges() {
+        avoidEdges.forEach(this::setEdgeSpeed);
+    }
+
+    private List<AvoidEdge> fetchAvoidEdges() throws IOException {
+        client = HttpClients.createMinimal();
+        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
+        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+        ResponseHandler<List<AvoidEdge>> responseHandler = response -> getAvoidEdgesFromResponse(response);
+        return client.execute(httpGet, responseHandler);
+    }
+
+    private List<AvoidEdge> getAvoidEdgesFromResponse(HttpResponse response) throws java.io.IOException {
+        int status = response.getStatusLine().getStatusCode();
+        if (status >= 200 && status < 300) {
+            HttpEntity entity = response.getEntity();
+            return entity != null ? MAPPER.readValue(entity.getContent(), typeReference) : null;
+        } else {
+            throw new ClientProtocolException("Unexpected response status: " + status);
+        }
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
@@ -121,14 +140,11 @@ public class RoutingService {
             return null;
         }
         if (batchSize == 1) {
-            Map<String, Double> resMap = new HashMap<>();
-            Map.Entry<String, double[]> entry = batchRequest.getDests().entrySet().iterator().next();
-            resMap.put(entry.getKey(), getDistance(batchRequest.getSrc(), entry.getValue()));
-            return resMap;
+            return calcDistanceForSingleBatch(batchRequest);
         }
 
         Map<String, Future<Double>> futureMap = new HashMap<>();
-        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> getDistance(location, batchRequest.getSrc()))));
+        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> calcDistance(location, batchRequest.getSrc()))));
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {
             try {
@@ -140,7 +156,14 @@ public class RoutingService {
         return response;
     }
 
-    private double getDistance(double[] from, double[] to) {
+    private Object calcDistanceForSingleBatch(BatchRequest batchRequest) {
+        Map<String, Double> resMap = new HashMap<>();
+        Map.Entry<String, double[]> entry = batchRequest.getDests().entrySet().iterator().next();
+        resMap.put(entry.getKey(), calcDistance(batchRequest.getSrc(), entry.getValue()));
+        return resMap;
+    }
+
+    private double calcDistance(double[] from, double[] to) {
         return GraphUtils.getDistance(from[0], from[1], to[0], to[1], hopper);
     }
 
