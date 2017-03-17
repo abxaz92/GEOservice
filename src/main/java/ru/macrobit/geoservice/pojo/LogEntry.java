@@ -2,6 +2,8 @@ package ru.macrobit.geoservice.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
@@ -140,5 +142,17 @@ public class LogEntry implements TaximeterLocation {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public DBObject getDbObject(String orderId) {
+        DBObject dbObject = new BasicDBObject();
+        dbObject.put("lat", this.getLat());
+        dbObject.put("lon", this.getLon());
+        dbObject.put("timestamp", this.getTimestamp());
+        dbObject.put("src", this.getSrc());
+        dbObject.put("error", this.getError());
+        dbObject.put("builded", this.isBuilded());
+        dbObject.put("orderId", orderId);
+        return dbObject;
     }
 }

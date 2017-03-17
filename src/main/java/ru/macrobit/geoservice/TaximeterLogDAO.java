@@ -1,6 +1,5 @@
 package ru.macrobit.geoservice;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.BulkWriteOperation;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
@@ -47,16 +46,9 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
         if (logs.isEmpty())
             return;
         try {
-            BulkWriteOperation bulkWriteOperation = mongo.getDB("taxi").getCollection("taximeterlog").initializeUnorderedBulkOperation();
+            BulkWriteOperation bulkWriteOperation = getBulkWriteOperation();
             logs.stream().forEach(log -> {
-                DBObject dbObject = new BasicDBObject();
-                dbObject.put("lat", log.getLat());
-                dbObject.put("lon", log.getLon());
-                dbObject.put("timestamp", log.getTimestamp());
-                dbObject.put("src", log.getSrc());
-                dbObject.put("error", log.getError());
-                dbObject.put("builded", log.isBuilded());
-                dbObject.put("orderId", orderId);
+                DBObject dbObject = log.getDbObject(orderId);
                 bulkWriteOperation.insert(dbObject);
             });
             bulkWriteOperation.execute();
@@ -65,6 +57,13 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
         }
 
     }
+
+    private BulkWriteOperation getBulkWriteOperation() {
+        return mongo.getDB("taxi")
+                .getCollection("taximeterlog")
+                .initializeUnorderedBulkOperation();
+    }
+
 
     public TaximeterLogDAO() {
         super(LogEntry.class);

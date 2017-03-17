@@ -4,6 +4,10 @@ import org.springframework.data.annotation.Id;
 
 import java.io.IOException;
 
+/**
+ * Abstract entity
+ * Must be inherited for using DAO methods
+ */
 public abstract class Entity {
     @Id
     protected String id;
