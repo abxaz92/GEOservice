@@ -4,17 +4,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
-import com.graphhopper.matching.EdgeMatch;
-import com.graphhopper.matching.LocationIndexMatch;
-import com.graphhopper.matching.MapMatching;
-import com.graphhopper.matching.MatchResult;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.storage.GraphHopperStorage;
-import com.graphhopper.storage.index.LocationIndexTree;
-import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
-import com.graphhopper.util.shapes.GHPoint3D;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -47,7 +39,9 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -77,6 +71,7 @@ public class TaximeterService {
     });
     private ScheduledExecutorService areasFetcherExecutor = Executors.newSingleThreadScheduledExecutor();
     private static final int POLYGON_RELOAD_DELAY = 10;
+
 
     @Inject
     private TaximeterLogDAO taximeterLogDAO;
@@ -118,75 +113,17 @@ public class TaximeterService {
 
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
         List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
-        logs = makeSmooth(logs, maxTimeout);
+        TaximeterLogsProcessor taximeterLogsProcessor = TaximeterLogsProcessor
+                .newBuilder()
+                .setTaximeterLogs(logs)
+                .setEncoder(encoder)
+                .setGraphHopper(hopper)
+                .setRouteCalculator((from, to) -> calcRoute(from, to))
+                .build();
+        taximeterLogsProcessor.makeSmooth(maxTimeout);
         logger.warn("{}", logs);
         taximeterLogDAO.bulkInsert(logs.stream()
-//                .filter(logEntry -> logEntry.isBuilded())
                 .collect(Collectors.toSet()), orderId);
-    }
-
-    public List<LogEntry> makeSmooth(List<LogEntry> logs, Long maxTimeout) {
-        logs = bindLocationsToRoad(logs);
-        sortLocationsList(logs);
-        List<LogEntry> taximeterLogs = interpolateLocationTrack(logs, maxTimeout);
-        return taximeterLogs;
-    }
-
-    private List<LogEntry> interpolateLocationTrack(List<LogEntry> logs, Long maxPermitedTimeout) {
-        int index = 1;
-        List<LogEntry> taximeterLogs = new ArrayList<>(logs);
-        for (int i = 0; i < logs.size() - 1; i++) {
-            long timeoutBetweenCurrentLocations = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
-            if (timeoutBetweenCurrentLocations > maxPermitedTimeout) {
-                PointList pointList = calcRoute(logs.get(i), logs.get(i + 1));
-                Iterator<GHPoint3D> iterator = pointList.iterator();
-                long timestamp = logs.get(i).getTimestamp();
-                long incremet = (timeoutBetweenCurrentLocations / pointList.size());
-                while (iterator.hasNext()) {
-                    GHPoint3D point = iterator.next();
-                    timestamp += incremet;
-                    LogEntry logEntry = new LogEntry();
-                    logEntry.setLat(point.getLat());
-                    logEntry.setLon(point.getLon());
-                    logEntry.setTimestamp(timestamp);
-                    logEntry.setError("10");
-                    logEntry.setSrc("gps");
-                    logEntry.setBuilded(true);
-                    taximeterLogs.add(index, logEntry);
-                    index++;
-                }
-                index++;
-            } else {
-                index++;
-            }
-        }
-        return taximeterLogs;
-    }
-
-    private void sortLocationsList(List<LogEntry> logs) {
-        Collections.sort(logs, Comparator.comparingLong(LogEntry::getTimestamp));
-    }
-
-    private List<LogEntry> bindLocationsToRoad(List<LogEntry> logs) {
-        GraphHopperStorage graph = hopper.getGraphHopperStorage();
-        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
-                (LocationIndexTree) hopper.getLocationIndex());
-        MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
-        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
-        mapMatching.setForceRepair(true);
-        MatchResult mr = mapMatching.doWork(gpxEntries);
-        List<EdgeMatch> matches = mr.getEdgeMatches();
-        logs = new ArrayList<>();
-        for (EdgeMatch match : matches) {
-            logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
-                LogEntry log = new LogEntry();
-                log.setLat(gpx.getQueryResult().getSnappedPoint().getLat());
-                log.setLon(gpx.getQueryResult().getSnappedPoint().getLon());
-                log.setTimestamp(gpx.getEntry().getTime());
-                return log;
-            }).collect(Collectors.toSet()));
-        }
-        return logs;
     }
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
@@ -211,10 +148,6 @@ public class TaximeterService {
 
         PathWrapper path = rsp.getBest();
         return path.getPoints();
-    }
-
-    private double getDistance(double[] from, double[] to) {
-        return GraphUtils.getDistance(from[0], from[1], to[0], to[1], hopper);
     }
 
     public synchronized void reloadPolygons() throws IOException {
@@ -244,7 +177,6 @@ public class TaximeterService {
                 .get(0)
                 .stream().map(p -> new Point(p.get(0).floatValue(), p.get(1).floatValue())).collect(Collectors.toList());
     }
-
 
     private List<Area> fetchAreas() throws java.io.IOException {
         CloseableHttpClient client = HttpClients.createMinimal();
