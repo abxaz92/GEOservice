@@ -62,21 +62,6 @@ public class SearchServiceEJB implements SearchService {
                                 geoObject.getName().toLowerCase().contains(pattern.toLowerCase());
                     })
                     .sorted((o1, o2) -> {
-                        // Если города отличаются и Владикавказ только один из них,
-                        // то поднять объект из Владика повыше
-//                        String firstObjectCity = o1.getAddress().getTown();
-//                        String secondObjectCity = o2.getAddress().getTown();
-//
-//                        if (firstObjectCity != null && secondObjectCity != null
-//                                && !firstObjectCity.equals(secondObjectCity)) {
-//                            if (firstObjectCity.contains("Владикавказ")) {
-//                                return -1;
-//                            }
-//                            if (secondObjectCity.contains("Владикавказ")) {
-//                                return 1;
-//                            }
-//                        }
-
                         // Если оба объекта из Владика или оба не из Владика,
                         // то сортировать по релевантности
                         String pat = pattern.toLowerCase();
