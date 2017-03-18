@@ -45,16 +45,12 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
         log.warn("{}", logs.size());
         if (logs.isEmpty())
             return;
-        try {
-            BulkWriteOperation bulkWriteOperation = getBulkWriteOperation();
-            logs.stream().forEach(log -> {
-                DBObject dbObject = log.getDbObject(orderId);
-                bulkWriteOperation.insert(dbObject);
-            });
-            bulkWriteOperation.execute();
-        } catch (Exception e) {
-            log.error(orderId);
-        }
+        BulkWriteOperation bulkWriteOperation = getBulkWriteOperation();
+        logs.stream().forEach(log -> {
+            DBObject dbObject = log.getDbObject(orderId);
+            bulkWriteOperation.insert(dbObject);
+        });
+        bulkWriteOperation.execute();
 
     }
 

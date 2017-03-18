@@ -3,6 +3,7 @@ package ru.macrobit.geoservice.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.common.GraphUtils;
+import ru.macrobit.geoservice.common.exception.InvalidRequestException;
 import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 import ru.macrobit.geoservice.pojo.TaximeterRequest;
@@ -45,7 +46,7 @@ public class RouteController {
     @POST
     @Path("/batch")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Object postBatchDistanceRequest(@QueryParam("fast") String fast, BatchRequest batchRequest) {
+    public Object postBatchDistanceRequest(@QueryParam("fast") String fast, BatchRequest batchRequest) throws InvalidRequestException {
         long a = System.currentTimeMillis();
         Object res;
         if (fast == null)

@@ -13,6 +13,7 @@ import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.QueryResult;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.PointList;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -20,10 +21,12 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
+import ru.macrobit.geoservice.common.exception.InvalidRequestException;
 import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 
@@ -66,6 +69,8 @@ public class RoutingService {
     private TypeReference<List<AvoidEdge>> typeReference = new TypeReference<List<AvoidEdge>>() {
     };
     private List<AvoidEdge> avoidEdges = null;
+    private static final String URL_AVOID_EDGES = "http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D";
+    private static final Header AUTH_HEADER = new BasicHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
 
     @PostConstruct
     public void init() {
@@ -105,8 +110,9 @@ public class RoutingService {
 
     private List<AvoidEdge> fetchAvoidEdges() throws IOException {
         client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D");
-        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+        HttpGet httpGet = new HttpGet(URL_AVOID_EDGES);
+
+        httpGet.setHeader(AUTH_HEADER);
         ResponseHandler<List<AvoidEdge>> responseHandler = response -> getAvoidEdgesFromResponse(response);
         return client.execute(httpGet, responseHandler);
     }
@@ -133,8 +139,13 @@ public class RoutingService {
         return pointList.toGeoJson();
     }
 
-    public Object calcDistances(BatchRequest batchRequest) {
+    public Object calcDistances(BatchRequest batchRequest) throws InvalidRequestException {
         long a = System.currentTimeMillis();
+        if (batchRequest == null)
+            throw new InvalidRequestException();
+        if (!batchRequest.isValid())
+            throw new InvalidRequestException();
+
         int batchSize = batchRequest.getDests().values().size();
         if (batchSize == 0) {
             return null;
@@ -143,7 +154,9 @@ public class RoutingService {
             return calcDistanceForSingleBatch(batchRequest);
         }
 
+//        Map<String, Future<Double>> futureMap = new HashMap<>();
         Map<String, Future<Double>> futureMap = new HashMap<>();
+
         batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> calcDistance(location, batchRequest.getSrc()))));
         Map<String, Double> response = new HashMap<>();
         futureMap.forEach((key, val) -> {

@@ -24,4 +24,8 @@ public class BatchRequest {
     public void setSrc(double[] src) {
         this.src = src;
     }
+
+    public boolean isValid() {
+        return this.getDests() != null && this.getDests().values() != null;
+    }
 }
