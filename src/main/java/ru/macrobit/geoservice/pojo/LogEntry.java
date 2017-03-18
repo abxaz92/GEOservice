@@ -2,6 +2,7 @@ package ru.macrobit.geoservice.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.graphhopper.matching.GPXExtension;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import org.springframework.data.annotation.Id;
@@ -154,5 +155,13 @@ public class LogEntry implements TaximeterLocation {
         dbObject.put("builded", this.isBuilded());
         dbObject.put("orderId", orderId);
         return dbObject;
+    }
+
+    public static LogEntry createFromGpxExtension(GPXExtension gpxExtension) {
+        LogEntry logEntry = new LogEntry();
+        logEntry.setLat(gpxExtension.getQueryResult().getSnappedPoint().getLat());
+        logEntry.setLon(gpxExtension.getQueryResult().getSnappedPoint().getLon());
+        logEntry.setTimestamp(gpxExtension.getEntry().getTime());
+        return logEntry;
     }
 }

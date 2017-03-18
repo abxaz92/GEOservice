@@ -79,23 +79,29 @@ public class TaximeterLogsProcessor {
 
     private void doBindLocationsToRoad() {
         GraphHopperStorage graph = hopper.getGraphHopperStorage();
-        LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
-                (LocationIndexTree) hopper.getLocationIndex());
+        LocationIndexMatch locationIndex = new LocationIndexMatch(graph, (LocationIndexTree) hopper.getLocationIndex());
         MapMatching mapMatching = new MapMatching(graph, locationIndex, encoder);
-        List<GPXEntry> gpxEntries = logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
+        List<GPXEntry> gpxEntries = convertLogsToGpxEntries();
         mapMatching.setForceRepair(true);
         MatchResult mr = mapMatching.doWork(gpxEntries);
         List<EdgeMatch> matches = mr.getEdgeMatches();
         this.logs = new ArrayList<>();
         for (EdgeMatch match : matches) {
-            logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
-                LogEntry log = new LogEntry();
-                log.setLat(gpx.getQueryResult().getSnappedPoint().getLat());
-                log.setLon(gpx.getQueryResult().getSnappedPoint().getLon());
-                log.setTimestamp(gpx.getEntry().getTime());
-                return log;
-            }).collect(Collectors.toSet()));
+            Set<LogEntry> taximeterLogs = extractTaximeterLogsFromMatch(match);
+            logs.addAll(taximeterLogs);
         }
+    }
+
+    private static Set<LogEntry> extractTaximeterLogsFromMatch(EdgeMatch match) {
+        return match
+                .getGpxExtensions()
+                .stream()
+                .map(gpxExtension -> LogEntry.createFromGpxExtension(gpxExtension))
+                .collect(Collectors.toSet());
+    }
+
+    private List<GPXEntry> convertLogsToGpxEntries() {
+        return logs.stream().map(log -> new GPXEntry(log.getLat(), log.getLon(), log.getTimestamp())).collect(Collectors.toList());
     }
 
     public class Builder {
