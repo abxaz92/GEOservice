@@ -5,6 +5,7 @@ import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
+import org.apache.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.service.RoutingService;
@@ -128,5 +129,10 @@ public class GraphUtils {
         double x = sl1 * sl2 + cl1 * cl2 * cdelta;
         double ad = Math.atan2(y, x);
         return ad * RAD;
+    }
+
+    public static boolean isaResponseSuccess(HttpResponse response) {
+        int status = response.getStatusLine().getStatusCode();
+        return status >= 200 && status < 300;
     }
 }

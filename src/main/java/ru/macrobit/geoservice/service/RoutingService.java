@@ -68,7 +68,7 @@ public class RoutingService {
     };
     private List<AvoidEdge> avoidEdges = null;
     private static final String URL_AVOID_EDGES = "http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D";
-    private static final Header AUTH_HEADER = new BasicHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+    public static final Header AUTH_HEADER = new BasicHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
     private static final int MILLISECONDS_IN_SECOND = 1000;
     private static final double UNREACHABLE_DISTANCE = -1d;
 
@@ -118,17 +118,12 @@ public class RoutingService {
     }
 
     private List<AvoidEdge> getAvoidEdgesFromResponse(HttpResponse response) throws java.io.IOException {
-        if (isaResponseSuccess(response)) {
+        if (GraphUtils.isaResponseSuccess(response)) {
             HttpEntity entity = response.getEntity();
             return entity != null ? MAPPER.readValue(entity.getContent(), typeReference) : null;
         } else {
             throw new ClientProtocolException("Unexpected response status");
         }
-    }
-
-    private boolean isaResponseSuccess(HttpResponse response) {
-        int status = response.getStatusLine().getStatusCode();
-        return status >= 200 && status < 300;
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {

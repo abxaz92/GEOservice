@@ -37,7 +37,6 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -68,6 +67,7 @@ public class TaximeterService {
     });
     private ScheduledExecutorService areasFetcherExecutor = Executors.newSingleThreadScheduledExecutor();
     private static final int POLYGON_RELOAD_DELAY = 10;
+    private static final String AREAS_FETCH_URL = "http://db/taxi/rest/area/with/factors";
 
 
     @Inject
@@ -184,19 +184,18 @@ public class TaximeterService {
 
     private List<Area> fetchAreas() throws java.io.IOException {
         CloseableHttpClient client = HttpClients.createMinimal();
-        HttpGet httpGet = new HttpGet("http://db/taxi/rest/area/with/factors");
-        httpGet.setHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+        HttpGet httpGet = new HttpGet(AREAS_FETCH_URL);
+        httpGet.setHeader(RoutingService.AUTH_HEADER);
         ResponseHandler<List<Area>> responseHandler = response -> getAreas(response);
         return client.execute(httpGet, responseHandler);
     }
 
     private List<Area> getAreas(HttpResponse response) throws java.io.IOException {
-        int status = response.getStatusLine().getStatusCode();
-        if (status >= 200 && status < 300) {
+        if (GraphUtils.isaResponseSuccess(response)) {
             HttpEntity entity = response.getEntity();
             return entity != null ? RoutingService.MAPPER.readValue(entity.getContent(), typeReference) : null;
         } else {
-            throw new ClientProtocolException("Unexpected response status: " + status);
+            throw new ClientProtocolException("Unexpected response status");
         }
     }
 
