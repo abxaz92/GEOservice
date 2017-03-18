@@ -159,7 +159,8 @@ public class TaximeterService {
             try {
                 if (area.isValid()) {
                     List<Point> points = convertToPoints(area);
-                    PolygonWithDataImpl polygonWithData = new PolygonWithDataImpl(points, area.getName(), (float) area.getFactor(), area.getDescription());
+                    PolygonWithDataImpl polygonWithData =
+                            new PolygonWithDataImpl(points, area.getName(), (float) area.getFactor(), area.getDescription());
                     polygons.addPolygon(polygonWithData);
                 }
             } catch (Exception e) {
@@ -169,6 +170,12 @@ public class TaximeterService {
     }
 
     private List<Point> convertToPoints(Area area) {
+        if (area.getLoc() == null)
+            return null;
+        if (area.getLoc().getCoordinates() == null)
+            return null;
+        if (area.getLoc().getCoordinates().isEmpty())
+            return null;
         return area.getLoc()
                 .getCoordinates()
                 .get(0)
