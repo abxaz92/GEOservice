@@ -46,15 +46,8 @@ public class RouteController {
     @POST
     @Path("/batch")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Object postBatchDistanceRequest(@QueryParam("fast") String fast, BatchRequest batchRequest) throws InvalidRequestException {
-        long a = System.currentTimeMillis();
-        Object res;
-        if (fast == null)
-            res = routingService.calcDistances(batchRequest);
-        else
-            res = taximeterService.calcDistances(batchRequest);
-        logger.info("{} {}", fast == null ? "slow" : "fast", System.currentTimeMillis() - a);
-        return res;
+    public Object postBatchDistanceRequest(BatchRequest batchRequest) throws InvalidRequestException {
+        return routingService.calcDistances(batchRequest);
     }
 
     @POST
