@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 public class TaximeterLogsProcessor {
     private static final Logger logger = LoggerFactory.getLogger(TaximeterLogsProcessor.class);
 
-    private static final String DEFAULT_ACCURACY = "10";
-    private static final String DEFAULT_LOCATIONS_PROVIDER = "gps";
     private GraphHopper hopper;
     private CarFlagEncoder encoder;
     private List<LogEntry> logs;
@@ -53,19 +51,13 @@ public class TaximeterLogsProcessor {
             long timeoutBetweenCurrentLocations = logs.get(i + 1).getTimestamp() - logs.get(i).getTimestamp();
             if (timeoutBetweenCurrentLocations > maxPermitedTimeout) {
                 PointList pointList = routeCalculator.getPointListForPoints(logs.get(i), logs.get(i + 1));
-                Iterator<GHPoint3D> iterator = pointList.iterator();
                 long timestamp = logs.get(i).getTimestamp();
                 long incremet = (timeoutBetweenCurrentLocations / pointList.size());
+                Iterator<GHPoint3D> iterator = pointList.iterator();
                 while (iterator.hasNext()) {
-                    GHPoint3D point = iterator.next();
                     timestamp += incremet;
-                    LogEntry logEntry = new LogEntry();
-                    logEntry.setLat(point.getLat());
-                    logEntry.setLon(point.getLon());
-                    logEntry.setTimestamp(timestamp);
-                    logEntry.setError(DEFAULT_ACCURACY);
-                    logEntry.setSrc(DEFAULT_LOCATIONS_PROVIDER);
-                    logEntry.setBuilded(true);
+                    GHPoint3D ghPoint3D = iterator.next();
+                    LogEntry logEntry = LogEntry.createFromGHPoint3D(ghPoint3D, timestamp);
                     taximeterLogs.add(index, logEntry);
                     index++;
                 }

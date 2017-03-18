@@ -3,6 +3,7 @@ package ru.macrobit.geoservice.pojo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.graphhopper.matching.GPXExtension;
+import com.graphhopper.util.shapes.GHPoint3D;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import org.springframework.data.annotation.Id;
@@ -23,6 +24,10 @@ import ru.macrobit.drivertaxi.taximeter.TaximeterLocationString;
         @CompoundIndex(name = "timestamp_orderid", def = "{orderId:1, timestamp:1}", unique = true)
 })
 public class LogEntry implements TaximeterLocation {
+
+    private static final String DEFAULT_ACCURACY = "10";
+    private static final String DEFAULT_LOCATIONS_PROVIDER = "gps";
+
     @Id
     private String id;
     private double lat;
@@ -164,4 +169,16 @@ public class LogEntry implements TaximeterLocation {
         logEntry.setTimestamp(gpxExtension.getEntry().getTime());
         return logEntry;
     }
+
+    public static LogEntry createFromGHPoint3D(GHPoint3D ghPoint3D, long timestamp) {
+        LogEntry logEntry = new LogEntry();
+        logEntry.setLat(ghPoint3D.getLat());
+        logEntry.setLon(ghPoint3D.getLon());
+        logEntry.setTimestamp(timestamp);
+        logEntry.setError(DEFAULT_ACCURACY);
+        logEntry.setSrc(DEFAULT_LOCATIONS_PROVIDER);
+        logEntry.setBuilded(true);
+        return logEntry;
+    }
+
 }
