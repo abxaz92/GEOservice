@@ -185,21 +185,6 @@ public class SearchServiceEJB implements SearchService {
                             return 1;
                         }
                     }
-                    /*if (a.getCity() != null && b.getCity() != null) {
-                        if (a.getCity().getName().equalsIgnoreCase("владикавказ")) {
-                            comparator = -1;
-                        } else if (b.getCity().getName().equalsIgnoreCase("владикавказ")) {
-                            comparator = 1;
-                        } else {
-                            comparator = a.getCity().getName().compareToIgnoreCase(b.getCity().getName());
-                        }
-                    }
-                    if (comparator != 0) {
-                        return comparator;
-                    }*/
-                    /*if (a.getRegion() != null && b.getRegion() != null) {
-                        comparator = a.getRegion().getName().compareToIgnoreCase(b.getRegion().getName());
-                    }*/
                     return comparator;
                 })
                 .limit(10)
