@@ -1,4 +1,4 @@
-package ru.macrobit.geoservice.service;
+package ru.macrobit.geoservice.service.taximeter;
 
 import com.graphhopper.GraphHopper;
 import com.graphhopper.matching.EdgeMatch;
@@ -12,6 +12,7 @@ import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint3D;
 import ru.macrobit.geoservice.pojo.LogEntry;
+import ru.macrobit.geoservice.service.RouteCalculator;
 
 import java.util.*;
 import java.util.stream.Collectors;

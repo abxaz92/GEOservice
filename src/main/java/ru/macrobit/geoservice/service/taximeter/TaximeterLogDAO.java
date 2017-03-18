@@ -1,4 +1,4 @@
-package ru.macrobit.geoservice;
+package ru.macrobit.geoservice.service.taximeter;
 
 import com.mongodb.BulkWriteOperation;
 import com.mongodb.DBObject;
@@ -28,7 +28,7 @@ public class TaximeterLogDAO extends AbstractBaseService<LogEntry> {
     @Inject
     private Mongo mongo;
 
-    public List<LogEntry> getLogs(String orderId, Integer limit, boolean build) {
+    public List<LogEntry> getLogsNotBuildedLogs(String orderId, Integer limit, boolean build) {
         Criteria criteria = new Criteria("orderId").is(orderId);
         if (!build) {
             criteria.and("build").ne(true);

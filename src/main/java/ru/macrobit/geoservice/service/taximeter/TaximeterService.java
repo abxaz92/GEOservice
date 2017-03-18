@@ -1,4 +1,4 @@
-package ru.macrobit.geoservice.service;
+package ru.macrobit.geoservice.service.taximeter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.graphhopper.GHResponse;
@@ -16,22 +16,20 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ru.macrobit.drivertaxi.taximeter.TaximeterLocation;
 import ru.macrobit.drivertaxi.taximeter.api.TaximeterAPI;
 import ru.macrobit.drivertaxi.taximeter.api.TaximeterAPIImpl;
 import ru.macrobit.drivertaxi.taximeter.api.TaximeterAPIResult;
 import ru.macrobit.drivertaxi.taximeter.api.TaximeterRequest;
-import ru.macrobit.drivertaxi.taximeter.ordersdata.TaximeterInterval;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.TaximeterParams;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.TaximeterParamsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonWithDataImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.PolygonsImpl;
 import ru.macrobit.drivertaxi.taximeter.taximeterParams.polygons.polygon.Point;
-import ru.macrobit.geoservice.TaximeterLogDAO;
 import ru.macrobit.geoservice.common.GraphUtils;
 import ru.macrobit.geoservice.common.PropertiesFileReader;
 import ru.macrobit.geoservice.pojo.Area;
 import ru.macrobit.geoservice.pojo.LogEntry;
+import ru.macrobit.geoservice.service.RoutingService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -39,7 +37,6 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.*;
@@ -112,7 +109,7 @@ public class TaximeterService {
     }
 
     public void buildLogs(String orderId, Double maxDist, Long maxTimeout) {
-        List<LogEntry> logs = taximeterLogDAO.getLogs(orderId, null, true);
+        List<LogEntry> logs = taximeterLogDAO.getLogsNotBuildedLogs(orderId, null, true);
         TaximeterLogsProcessor taximeterLogsProcessor = TaximeterLogsProcessor
                 .newBuilder()
                 .setTaximeterLogs(logs)
@@ -128,7 +125,7 @@ public class TaximeterService {
 
     public TaximeterAPIResult calculate(ru.macrobit.geoservice.pojo.TaximeterRequest taximeterRequest) throws Exception {
         TaximeterParams params = new TaximeterParamsImpl(taximeterRequest.getTarif());
-        List<LogEntry> logs = taximeterLogDAO.getLogs(taximeterRequest.getOrderId(), taximeterRequest.getIndex(), taximeterRequest.isBuild());
+        List<LogEntry> logs = taximeterLogDAO.getLogsNotBuildedLogs(taximeterRequest.getOrderId(), taximeterRequest.getIndex(), taximeterRequest.isBuild());
         TaximeterRequest request = new TaximeterRequest.Builder(params)
                 .setConstantInterval(20000)
                 .setLocations(logs)
@@ -201,29 +198,4 @@ public class TaximeterService {
         pool.shutdown();
     }
 
-    class TaximeterLogger implements ru.macrobit.drivertaxi.taximeter.logs.TaximeterLogger {
-        @Override
-        public void logNewTaximeterLocation(TaximeterLocation taximeterLocation) {
-
-        }
-
-        @Override
-        public void logTaximeterIntervalsOnFinish(ArrayList<TaximeterInterval> arrayList) {
-
-        }
-
-        @Override
-        public void logNewIntervalData(TaximeterInterval taximeterInterval, int i) {
-        }
-
-        @Override
-        public void clearTaximeterLocations() {
-
-        }
-
-        @Override
-        public ArrayList<TaximeterLocation> getOrderLoggedTaximeterLocations() {
-            return null;
-        }
-    }
 }

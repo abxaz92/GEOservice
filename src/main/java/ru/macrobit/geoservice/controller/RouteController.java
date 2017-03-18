@@ -8,7 +8,7 @@ import ru.macrobit.geoservice.pojo.AvoidEdge;
 import ru.macrobit.geoservice.pojo.BatchRequest;
 import ru.macrobit.geoservice.pojo.TaximeterRequest;
 import ru.macrobit.geoservice.service.RoutingService;
-import ru.macrobit.geoservice.service.TaximeterService;
+import ru.macrobit.geoservice.service.taximeter.TaximeterService;
 
 import javax.ejb.EJB;
 import javax.ws.rs.*;
