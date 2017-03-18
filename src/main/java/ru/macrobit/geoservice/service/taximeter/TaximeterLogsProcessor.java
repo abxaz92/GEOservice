@@ -11,6 +11,8 @@ import com.graphhopper.storage.index.LocationIndexTree;
 import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint3D;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.macrobit.geoservice.pojo.LogEntry;
 import ru.macrobit.geoservice.service.RouteCalculator;
 
@@ -21,19 +23,21 @@ import java.util.stream.Collectors;
  * Created by [david] on 18.03.17.
  */
 public class TaximeterLogsProcessor {
+    private static final Logger logger = LoggerFactory.getLogger(TaximeterLogsProcessor.class);
+
     private static final String DEFAULT_ACCURACY = "10";
     private static final String DEFAULT_LOCATIONS_PROVIDER = "gps";
     private GraphHopper hopper;
     private CarFlagEncoder encoder;
-    List<LogEntry> logs;
-    RouteCalculator routeCalculator;
+    private List<LogEntry> logs;
+    private RouteCalculator routeCalculator;
 
     public static Builder newBuilder() {
         return new TaximeterLogsProcessor().new Builder();
     }
 
     public List<LogEntry> makeSmooth(Long maxTimeout) {
-        logs = bindLocationsToRoad();
+        doBindLocationsToRoad();
         sortLocationsList();
         return interpolateLocationTrack(maxTimeout);
     }
@@ -73,7 +77,7 @@ public class TaximeterLogsProcessor {
         return taximeterLogs;
     }
 
-    private List<LogEntry> bindLocationsToRoad() {
+    private void doBindLocationsToRoad() {
         GraphHopperStorage graph = hopper.getGraphHopperStorage();
         LocationIndexMatch locationIndex = new LocationIndexMatch(graph,
                 (LocationIndexTree) hopper.getLocationIndex());
@@ -82,7 +86,7 @@ public class TaximeterLogsProcessor {
         mapMatching.setForceRepair(true);
         MatchResult mr = mapMatching.doWork(gpxEntries);
         List<EdgeMatch> matches = mr.getEdgeMatches();
-        logs = new ArrayList<>();
+        this.logs = new ArrayList<>();
         for (EdgeMatch match : matches) {
             logs.addAll(match.getGpxExtensions().stream().map(gpx -> {
                 LogEntry log = new LogEntry();
@@ -92,7 +96,6 @@ public class TaximeterLogsProcessor {
                 return log;
             }).collect(Collectors.toSet()));
         }
-        return logs;
     }
 
     public class Builder {
