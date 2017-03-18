@@ -37,12 +37,10 @@ import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import java.io.IOException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Created by [David] on 15.09.16.
@@ -71,6 +69,8 @@ public class RoutingService {
     private List<AvoidEdge> avoidEdges = null;
     private static final String URL_AVOID_EDGES = "http://db/taxi/rest/mapnode?query=%7Bactive%3Atrue%7D";
     private static final Header AUTH_HEADER = new BasicHeader("Authorization", "Basic " + new String(Base64.getEncoder().encode("route:!23456".getBytes())));
+    private static final int MILLISECONDS_IN_SECOND = 1000;
+    private static final double UNREACHABLE_DISTANCE = -1d;
 
     @PostConstruct
     public void init() {
@@ -118,13 +118,17 @@ public class RoutingService {
     }
 
     private List<AvoidEdge> getAvoidEdgesFromResponse(HttpResponse response) throws java.io.IOException {
-        int status = response.getStatusLine().getStatusCode();
-        if (status >= 200 && status < 300) {
+        if (isaResponseSuccess(response)) {
             HttpEntity entity = response.getEntity();
             return entity != null ? MAPPER.readValue(entity.getContent(), typeReference) : null;
         } else {
-            throw new ClientProtocolException("Unexpected response status: " + status);
+            throw new ClientProtocolException("Unexpected response status");
         }
+    }
+
+    private boolean isaResponseSuccess(HttpResponse response) {
+        int status = response.getStatusLine().getStatusCode();
+        return status >= 200 && status < 300;
     }
 
     public Object getRoute(double fromLat, double fromLon, double toLat, double toLon) {
@@ -154,19 +158,32 @@ public class RoutingService {
             return calcDistanceForSingleBatch(batchRequest);
         }
 
-//        Map<String, Future<Double>> futureMap = new HashMap<>();
-        Map<String, Future<Double>> futureMap = new HashMap<>();
+        Map<String, Future<Double>> futureMap = collectToFutureMap(batchRequest);
+        return getFutureResponces(futureMap);
+    }
 
-        batchRequest.getDests().forEach((key, location) -> futureMap.put(key, pool.submit(() -> calcDistance(location, batchRequest.getSrc()))));
-        Map<String, Double> response = new HashMap<>();
-        futureMap.forEach((key, val) -> {
-            try {
-                response.put(key, val.get(7, TimeUnit.MILLISECONDS));
-            } catch (TimeoutException | InterruptedException | ExecutionException e) {
-                response.put(key, -1d);
-            }
-        });
-        return response;
+    private Map<String, Double> getFutureResponces(Map<String, Future<Double>> futureMap) {
+        return futureMap
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, futureEntry -> {
+                    try {
+                        return futureEntry.getValue().get(7, TimeUnit.MILLISECONDS);
+                    } catch (TimeoutException | InterruptedException | ExecutionException e) {
+                        return UNREACHABLE_DISTANCE;
+                    }
+                }));
+    }
+
+    private Map<String, Future<Double>> collectToFutureMap(BatchRequest batchRequest) {
+        return batchRequest.getDests()
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> submit(batchRequest.getSrc(), entry)));
+    }
+
+    private Future<Double> submit(double[] source, Map.Entry<String, double[]> entry) {
+        return pool.submit(() -> calcDistance(entry.getValue(), source));
     }
 
     private Object calcDistanceForSingleBatch(BatchRequest batchRequest) {
@@ -190,24 +207,22 @@ public class RoutingService {
         PathWrapper path = rsp.getBest();
         Map<String, Object> res = new HashMap<>();
         res.put("dist", path.getDistance());
-        res.put("time", path.getTime() / 1000);
+
+        res.put("time", path.getTime() / MILLISECONDS_IN_SECOND);
 
         return res;
     }
 
     public void setEdgeSpeed(AvoidEdge avoidEdge) {
-        if (avoidEdge.getLoc() == null) {
-            throw new RuntimeException("location for " + avoidEdge.getId() + " is null");
-        }
-        if (avoidEdge.getLoc().length != 2) {
+        if (!avoidEdge.isValid())
             throw new RuntimeException("location for " + avoidEdge.getId() + " is illegal");
-        }
+
         Graph graph = hopper.getGraphHopperStorage();
         FlagEncoder carEncoder = hopper.getEncodingManager().getEncoder("car");
         LocationIndex locationIndex = hopper.getLocationIndex();
         QueryResult qr = locationIndex.findClosest(avoidEdge.getLoc()[0], avoidEdge.getLoc()[1], EdgeFilter.ALL_EDGES);
         if (!qr.isValid()) {
-            logger.warn("query not valid for :{} {}, {}", avoidEdge.getId(), avoidEdge.getLoc()[0], avoidEdge.getLoc()[0]);
+            logger.warn("query not valid for :{} {}", avoidEdge.getId(), Arrays.toString(avoidEdge.getLoc()));
             return;
         }
 
